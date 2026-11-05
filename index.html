@@ -109,7 +109,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.1.0'};
+const APP={name:'Zählwerk',version:'0.1.1'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -253,6 +253,7 @@ const MEDIA={
  gas:{label:'Gas',unit:'m³',col:'gas',icon:'flame'},
  strom:{label:'Strom',unit:'kWh',col:'strom',icon:'zap'},
  wasser:{label:'Wasser',unit:'m³',col:'wasser',icon:'drop'},
+ garten:{label:'Gartenwasser',unit:'m³',col:'garten',icon:'sprout'},
  waerme:{label:'Wärme',unit:'kWh',col:'waerme',icon:'therm'},
  sonst:{label:'Sonstiges',unit:'',col:'misc',icon:'gauge'}
 };
@@ -260,6 +261,7 @@ const COLS=['gas','strom','wasser','garten','waerme','cyan','sand','misc'];
 const IC={
  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
  zap:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+ sprout:'<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>',
  drop:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
  therm:'<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
  gauge:'<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
