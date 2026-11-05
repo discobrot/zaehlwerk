@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="de" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10231F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Zählwerk">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>Zählwerk</title>
+<style>
+:root{color-scheme:dark;--bg:#10231F;--card:#1C4035;--card2:#163329;--line:rgba(240,245,241,.14);--tx:#F0F5F1;--mu:#A9BDB3;--pri:#54D6A0;--onpri:#10231F;--lime:#B6E65A;--bad:#FF6B61;--warn:#F2B21B;--shadow:0 8px 24px rgba(0,0,0,.30);
+--c-gas:#E8731A;--c-strom:#F2B21B;--c-wasser:#5BA3F0;--c-garten:#B08CF2;--c-waerme:#EC6FB0;--c-misc:#9AA7A1;--c-cyan:#4FD1E0;--c-sand:#C9A27A}
+html[data-theme=light]{color-scheme:light;--bg:#F0F5F1;--card:#FFFFFF;--card2:#E6EEE9;--line:rgba(16,35,31,.16);--tx:#10231F;--mu:#4C625A;--pri:#12805A;--onpri:#FFFFFF;--lime:#5E8A00;--bad:#C62F26;--warn:#8A6100;--shadow:0 6px 18px rgba(16,35,31,.10);
+--c-gas:#C95A0A;--c-strom:#B07800;--c-wasser:#1F6FC9;--c-garten:#7A52D6;--c-waerme:#C23E85;--c-misc:#5C6B64;--c-cyan:#0E8FA3;--c-sand:#8F6A3D}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+body{padding-top:env(safe-area-inset-top)}
+#app{max-width:640px;margin:0 auto;min-height:100vh;padding:0 14px calc(96px + env(safe-area-inset-bottom))}
+.top{display:flex;align-items:center;gap:12px;padding:16px 2px 10px}
+.top h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.2px}
+.logo{display:flex;gap:3px}
+.logo i{width:15px;height:22px;border-radius:4px;background:#F4F1EA;color:#10231F;font:700 14px/22px ui-rounded,system-ui,sans-serif;text-align:center;font-style:normal}
+.logo i:last-child{background:#D93F36;color:#fff}
+h2{font-size:15px;margin:0 0 10px;font-weight:650}
+h3{margin:0 0 10px;font-size:18px}
+p{margin:0 0 10px}
+.mu{color:var(--mu)}.sm{font-size:13px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+.banner{display:flex;gap:12px;align-items:flex-start;background:var(--card2);border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:14px}
+.banner .ic{color:var(--warn);flex:none;margin-top:2px}
+.ic{width:22px;height:22px;flex:none}.ic.s{width:15px;height:15px;vertical-align:-2px}
+.btn{min-height:48px;border-radius:14px;border:0;padding:0 18px;font:600 16px/1 system-ui,-apple-system,sans-serif;background:var(--pri);color:var(--onpri);display:inline-flex;align-items:center;justify-content:center;gap:8px;cursor:pointer}
+.btn.sec{background:transparent;color:var(--tx);border:1px solid var(--line)}
+.btn.ghost{background:transparent;color:var(--mu)}
+.btn.danger{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+.btn.wide{width:100%}.btn.sm{min-height:44px;padding:0 14px;font-size:15px}
+.btn:focus-visible,.chip:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--pri);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.chip{min-height:44px;display:inline-flex;align-items:center;gap:8px;padding:0 14px;border-radius:22px;border:1px solid var(--line);background:transparent;color:var(--tx);font:500 15px system-ui,sans-serif;cursor:pointer}
+.chip .dot{width:12px;height:12px;border-radius:50%;background:var(--mc,var(--pri))}
+.chip[aria-pressed=true]{border-color:var(--mc,var(--pri));background:color-mix(in srgb,var(--mc,var(--pri)) 22%,transparent);font-weight:650}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mu);margin:10px 0}
+.fld input,.fld select,.fld textarea,input.txt{font:inherit;font-size:16px;color:var(--tx);background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:0 12px;min-height:48px;width:100%}
+.fld textarea{padding:10px 12px;min-height:80px}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:3px solid var(--pri);outline-offset:1px}
+.crop{width:100%;border-radius:14px;display:block;background:#000}
+.cropimg{width:100%;display:block;border-radius:14px;margin:6px 0 12px;background:#000}
+.rollers{display:flex;gap:3px;justify-content:center;align-items:center;margin:12px 0}
+.rollers input{flex:1 1 0;min-width:0;max-width:46px;width:auto;height:62px;text-align:center;font:700 clamp(22px,7vw,30px) ui-rounded,system-ui,sans-serif;border-radius:10px;border:0;background:#F4F1EA;color:#10231F;padding:0}
+.rollers input.dd{background:#D93F36;color:#fff}
+.rollers input:focus{outline:3px solid var(--pri);outline-offset:2px}
+.rollers .sep{flex:0 0 8px;text-align:center;font:700 30px system-ui;color:var(--tx)}
+.rd{display:inline-block;width:22px;height:32px;line-height:32px;text-align:center;border-radius:6px;background:#F4F1EA;color:#10231F;font:700 19px/32px ui-rounded,system-ui,sans-serif;font-style:normal;margin-right:2px}
+.rd.r{background:#D93F36;color:#fff}.rs{display:inline-block;width:8px;text-align:center;font-style:normal;font-weight:700}
+.tile-h{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.mi{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--mc) 22%,transparent);color:var(--mc);flex:none}
+.tn{font-weight:700;font-size:17px}
+.tile-v{margin:6px 0 4px}
+.tile-i{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:8px 0 12px;font-size:14px}
+.spark{flex:none}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;background:transparent;border:0;border-top:1px solid var(--line);padding:12px 2px;color:var(--tx);text-align:left;font:inherit;cursor:pointer;min-height:56px}
+.item:first-child{border-top:0}
+.mono{font-variant-numeric:tabular-nums;letter-spacing:.5px}
+.right{text-align:right}
+details.help{margin:12px 0;border:1px dashed var(--line);border-radius:14px;padding:8px 12px}
+details.help summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:600}
+.msg{font-size:14px;margin:6px 0;color:var(--lime)}.msg.bad{color:var(--bad)}
+.steps{display:flex;gap:6px;margin:4px 0 16px}.steps i{flex:1;height:5px;border-radius:3px;background:var(--line)}.steps i.on{background:var(--pri)}
+.kinds{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.kind{min-height:84px;border-radius:16px;border:1px solid var(--line);background:transparent;color:var(--tx);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font:600 16px system-ui,sans-serif;cursor:pointer;--mc:var(--c-misc)}
+.kind[aria-pressed=true]{border-color:var(--mc);background:color-mix(in srgb,var(--mc) 22%,transparent)}
+.kind .ic{color:var(--mc);width:28px;height:28px}
+.hero{text-align:center;padding:26px 8px 8px}.hero .logo{justify-content:center;margin-bottom:18px;gap:6px}
+.hero .logo i{width:44px;height:64px;font-size:40px;line-height:64px;border-radius:10px}
+ul.tips{margin:6px 0 10px;padding-left:20px}ul.tips li{margin:4px 0}
+.swatches{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 12px}
+.sw{width:40px;height:40px;border-radius:50%;border:3px solid transparent;background:var(--mc);cursor:pointer}
+.sw[aria-pressed=true]{border-color:var(--tx)}
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;background:color-mix(in srgb,var(--card) 92%,transparent);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#tabs div{display:flex;width:100%;max-width:640px}
+#tabs button{flex:1;min-height:56px;border:0;background:transparent;color:var(--mu);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font:600 12px system-ui,sans-serif;cursor:pointer;border-radius:12px}
+#tabs button[aria-current=page]{color:var(--pri)}
+dialog{border:1px solid var(--line);border-radius:22px;background:var(--card);color:var(--tx);width:min(92vw,520px);max-height:88vh;overflow:auto;padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+#toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:15px;max-width:90vw;transition:.25s;z-index:9}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top"><div class="logo" aria-hidden="true"><i>0</i><i>7</i><i>6</i></div><h1 id="ttl">Zählwerk</h1></header>
+  <main id="view"></main>
+</div>
+<nav id="tabs" aria-label="Hauptnavigation"><div>
+  <button data-act="go" data-v="home"></button><button data-act="go" data-v="read"></button><button data-act="go" data-v="hist"></button><button data-act="go" data-v="set"></button>
+</div></nav>
+<dialog id="dlg"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<input id="fcam" type="file" accept="image/*" capture="environment" hidden>
+<input id="flib" type="file" accept="image/*" hidden>
+<input id="fimp" type="file" accept="application/json,.json" hidden>
+
+<script>
+'use strict';
+const APP={name:'Zählwerk',version:'0.1.0'};
+const DAY=864e5;
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid=()=>Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-4);
+const p2=n=>String(n).padStart(2,'0');
+
+// <logic>
+const nf=(x,d)=>Number(x).toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});
+const dshort=t=>new Date(t).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+const num=s=>{const x=parseFloat(String(s==null?'':s).replace(',','.'));return isFinite(x)?x:null};
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+
+// Zählerstand als Text ("02852,659") -> Ziffernschema und Wert
+function parseValueString(s){
+ s=String(s==null?'':s).trim().replace(/\s+/g,'');
+ const m=s.match(/^(\d+)(?:[.,](\d+))?$/); if(!m) return null;
+ const dec=(m[2]||'').length;
+ return {pre:m[1].length,dec,value:parseFloat(m[1]+(dec?'.'+m[2]:''))};
+}
+function digitString(v,pre,dec){const [a,b='']=Number(v).toFixed(dec).split('.');return a.padStart(pre,'0')+b}
+function fmtValue(v,pre,dec){const d=digitString(v,pre,dec);return dec?d.slice(0,pre)+','+d.slice(pre):d}
+function valueFromDigits(d,pre,dec){return parseFloat(d.slice(0,pre)+(dec?'.'+d.slice(pre):''))}
+
+// Erkannten Text (z. B. "Text aus Kamera") bereinigen
+const CONF={O:'0',o:'0',Q:'0',D:'0','б':'6','Б':'6',l:'1',I:'1','|':'1','!':'1',S:'5',s:'5',B:'8',Z:'2','З':'3','з':'3'};
+const DIGITISH=/^[0-9OoQDбБlI|!SsBZЗз\s.,\-_–—:]+$/;
+const stripUnit=l=>l.replace(/\s*(m3|m³|m|kwh)\s*$/i,'');
+function toDigits(s){let o='';for(const ch of s){if(ch>='0'&&ch<='9')o+=ch;else if(CONF[ch]!==undefined)o+=CONF[ch]}return o}
+function scanCandidates(text){
+ const out=[];let buf=[];
+ const flush=()=>{if(buf.length){const raw=buf.join(' '),d=toDigits(raw);if(d.length>=3)out.push({raw,digits:d});buf=[]}};
+ String(text||'').split(/\r?\n/).forEach(line=>{
+  const l=stripUnit(line.trim());
+  if(!l)return;
+  if(l.length<=16&&DIGITISH.test(l)&&/[0-9OoQDбБlI|!SsBZЗз]/.test(l))buf.push(l);else flush();
+ });
+ flush();return out;
+}
+function pickScan(text,sch,last,exclude){
+ const N=sch.pre+sch.dec,ex=(exclude||[]).map(x=>String(x).replace(/\D/g,'')).filter(Boolean);
+ const cands=scanCandidates(text).filter(c=>!ex.includes(c.digits));
+ if(!cands.length)return {kind:null,msg:'Im Text wurden keine Ziffernfolgen gefunden, die wie ein Zählerstand aussehen.'};
+ let good=null,odd=null;
+ for(const c of cands){
+  const d=c.digits;let kind=null;
+  if(d.length===N)kind='full';else if(sch.dec>0&&d.length===sch.pre)kind='int';else continue;
+  let plausible=true;
+  if(last!=null){
+   const val=kind==='full'?valueFromDigits(d,sch.pre,sch.dec):parseInt(d,10),ref=kind==='full'?last:Math.floor(last);
+   plausible=val>=ref-(kind==='int'?1:0.0005)&&val<=ref*1.6+50;
+  }
+  const r={kind,digits:d};
+  if(plausible){if(!good||(kind==='full'&&good.kind!=='full'))good=r}else if(!odd)odd=r;
+ }
+ if(good)return {...good,msg:good.kind==='full'?'Alle Stellen erkannt. Bitte mit dem Zähler vergleichen.':'Die Stellen vor dem Komma wurden erkannt. Die roten Nachkommastellen bitte selbst eintragen.'};
+ if(odd)return {kind:null,msg:'Erkannt wurde '+odd.digits+', das passt aber nicht zum letzten Stand. Bitte von Hand eintragen.'};
+ const short=cands.map(c=>c.digits).filter(d=>d.length<=12);
+ return {kind:null,msg:short.length?'Erkannt: '+short.join(', ')+'. Das passt nicht zu '+N+' Stellen. Bitte von Hand eintragen.':'Es wurden nur lange Ziffernfolgen erkannt (Typenschild oder Seriennummer). Bitte nur den Ausschnitt mit den Ziffern markieren oder von Hand eintragen.'};
+}
+// Zählernummer-Kandidaten aus gescanntem Typenschild-Text
+function numberCandidates(text){
+ const out=[],seen=new Set();
+ String(text||'').split(/\r?\n/).forEach(line=>{
+  const l=line.trim().replace(/^(Zähler-?Nr\.?|Zählernummer|Nr\.?|No\.?)\s*:?\s*/i,'');
+  const c=l.replace(/\s+/g,'').toUpperCase();
+  if(c.length<5||c.length>20)return;
+  if(!/^[A-Z0-9][A-Z0-9\-\/]*[A-Z0-9]$/.test(c))return;
+  if(((c.match(/\d/g))||[]).length<5)return;
+  if(/^(CE)?M\d{6}$/.test(c)||/^EN\d/.test(c)||/^DE-?\d\d-/.test(c)||/^CH-/.test(c))return;
+  if(!seen.has(c)){seen.add(c);out.push(c)}
+ });
+ return out.sort((a,b)=>(/^\d+$/.test(b)?1:0)-(/^\d+$/.test(a)?1:0)).slice(0,8);
+}
+function fnDate(name){
+ const m=String(name||'').match(/(\d{4})[-_.](\d{2})[-_.](\d{2})[ T_.\-](\d{2})[.:_\-](\d{2})(?:[.:_\-](\d{2}))?/);
+ if(!m)return null;
+ const t=new Date(+m[1],m[2]-1,+m[3],+m[4],+m[5],+(m[6]||0)).getTime();
+ return isNaN(t)?null:t;
+}
+function exifTime(buf){
+ try{
+  const v=new DataView(buf);if(v.getUint16(0)!==0xFFD8)return null;let o=2;
+  while(o<v.byteLength-4){
+   const m=v.getUint16(o),l=v.getUint16(o+2);
+   if(m===0xFFE1){
+    if(v.getUint32(o+4)!==0x45786966)return null;
+    const t=o+10,le=v.getUint16(t)===0x4949,g16=p=>v.getUint16(p,le),g32=p=>v.getUint32(p,le);
+    const rd=(i,tag)=>{const n=g16(t+i);for(let j=0;j<n;j++){const e=t+i+2+j*12;if(g16(e)===tag)return g32(e+8)}return null};
+    const ex=rd(g32(t+4),0x8769);if(ex==null)return null;
+    const d=rd(ex,0x9003);if(d==null)return null;
+    let s='';for(let i=0;i<19;i++)s+=String.fromCharCode(v.getUint8(t+d+i));
+    const q=s.match(/(\d+):(\d+):(\d+) (\d+):(\d+):(\d+)/);
+    return q?new Date(+q[1],q[2]-1,+q[3],+q[4],+q[5],+q[6]).getTime():null;
+   }
+   o+=2+l;
+  }
+ }catch(e){}
+ return null;
+}
+// Intervalle zwischen aufeinanderfolgenden Ablesungen (rs nach Zeit sortiert)
+function intervalsOf(rs){
+ const out=[],rates=[];
+ for(let i=1;i<rs.length;i++){
+  const a=rs[i-1],b=rs[i],days=(b.t-a.t)/DAY;let cons,est=false;
+  if(b.w){
+   if(b.end!=null&&b.end!==undefined)cons=(b.end-a.v)+(b.v-(b.start||0));
+   else{cons=avg(rates.slice(-6))*days;est=true}
+  }else cons=b.v-a.v;
+  const rate=days>0?cons/days:0;
+  out.push({a,b,days,cons,est,rate});
+  if(!est)rates.push(rate);
+ }
+ return out;
+}
+// Plausibilitätsprüfung einer neuen Ablesung
+function checkReading(rs,v,t,dec){
+ const w=[],s=[...rs].sort((a,b)=>a.t-b.t),d=dec==null?2:dec;
+ if(s.some(r=>Math.abs(r.t-t)<600000))w.push({k:'dup',text:'Zu diesem Zeitpunkt gibt es schon eine Ablesung.'});
+ const prev=s.filter(r=>r.t<t).pop(),next=s.find(r=>r.t>t);
+ if(prev){
+  const days=(t-prev.t)/DAY;
+  if(v<prev.v)w.push({k:'low',text:'Der Stand ist niedriger als der letzte ('+nf(prev.v,d)+' am '+dshort(prev.t)+').'});
+  else{
+   if(v===prev.v&&days>20)w.push({k:'same',text:'Der Stand ist seit '+Math.round(days)+' Tagen unverändert.'});
+   const rates=intervalsOf(s.filter(r=>r.t<=prev.t)).filter(x=>!x.est&&x.days>=5).slice(-3).map(x=>x.rate);
+   if(days>=3&&rates.length>=3){
+    const a=avg(rates),r=(v-prev.v)/days;
+    if(a>0&&r>a*4)w.push({k:'high',text:'Verbrauch pro Tag: '+nf(r,2)+'. In den letzten Zeiträumen waren es im Schnitt '+nf(a,2)+'. Das fällt auf, bitte prüfe die Stellen. (Im Herbst und Frühjahr ist ein Sprung beim Heizen normal.)'});
+    else if(a>0&&v>prev.v&&r<a*0.1)w.push({k:'lowuse',text:'Verbrauch pro Tag: '+nf(r,2)+'. In den letzten Zeiträumen waren es im Schnitt '+nf(a,2)+'. Das fällt auf, bitte prüfe die Stellen.'});
+   }
+  }
+ }
+ if(next&&v>next.v)w.push({k:'next',text:'Der Stand ist höher als die spätere Ablesung ('+nf(next.v,d)+' am '+dshort(next.t)+').'});
+ return w;
+}
+// </logic>
+
+/* ---------- Konstanten ---------- */
+const MEDIA={
+ gas:{label:'Gas',unit:'m³',col:'gas',icon:'flame'},
+ strom:{label:'Strom',unit:'kWh',col:'strom',icon:'zap'},
+ wasser:{label:'Wasser',unit:'m³',col:'wasser',icon:'drop'},
+ waerme:{label:'Wärme',unit:'kWh',col:'waerme',icon:'therm'},
+ sonst:{label:'Sonstiges',unit:'',col:'misc',icon:'gauge'}
+};
+const COLS=['gas','strom','wasser','garten','waerme','cyan','sand','misc'];
+const IC={
+ flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+ zap:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+ drop:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+ therm:'<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
+ gauge:'<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+ home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
+ cam:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+ list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+ set:'<path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ rot:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+ photo:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
+ warn:'<path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z"/><path d="M12 9v4M12 17h.01"/>',
+ swap:'<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
+ img:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>'
+};
+const ico=(n,c)=>'<svg class="ic '+(c||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[n]+'</svg>';
+const TABS=[['home','home','Übersicht'],['read','cam','Ablesen'],['hist','list','Verlauf'],['set','set','Einstellungen']];
+const TITLES={home:'Zählwerk',read:'Ablesen',hist:'Verlauf',set:'Einstellungen',setup:'Zähler einrichten'};
+
+/* ---------- Speicher ---------- */
+const KEY='zaehlwerk.v1';
+const blank=()=>({v:1,meters:[],readings:[],set:{theme:'dark',themeV:1}});
+function migrate(o){o.set=o.set||{};if(!o.set.themeV){o.set.theme='dark';o.set.themeV=1}if(!o.set.theme)o.set.theme='dark';return o}
+function load(){
+ try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&o.v&&Array.isArray(o.meters)&&Array.isArray(o.readings))return migrate(o)}catch(e){}
+ return blank();
+}
+let S=load();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){toast('Speichern nicht möglich: '+e.message);return false}}
+const DB={
+ db:null,
+ open(){return new Promise(res=>{try{const r=indexedDB.open('zaehlwerk',1);r.onupgradeneeded=()=>r.result.createObjectStore('photos');r.onsuccess=()=>{DB.db=r.result;res(true)};r.onerror=()=>res(false)}catch(e){res(false)}})},
+ tx(mode,fn){return new Promise(res=>{if(!DB.db)return res(null);try{const t=DB.db.transaction('photos',mode),rq=fn(t.objectStore('photos'));t.oncomplete=()=>res(rq&&rq.result!==undefined?rq.result:true);t.onerror=()=>res(null);t.onabort=()=>res(null)}catch(e){res(null)}})},
+ put(k,b){return DB.tx('readwrite',s=>s.put(b,k))},
+ get(k){return DB.tx('readonly',s=>s.get(k))},
+ del(k){return DB.tx('readwrite',s=>s.delete(k))}
+};
+
+/* ---------- Hilfen ---------- */
+let tt;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),3400)}
+window.addEventListener('error',e=>toast('Fehler: '+(e.message||'unbekannt')));
+window.addEventListener('unhandledrejection',e=>toast('Fehler: '+((e.reason&&e.reason.message)||'unbekannt')));
+const toLocalInput=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'T'+p2(d.getHours())+':'+p2(d.getMinutes())};
+const fmtFull=t=>new Date(t).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+const fmtDay=t=>new Date(t).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'numeric'});
+const fmtAuto=x=>nf(x,Math.abs(x)>=100?0:Math.abs(x)>=10?1:2);
+const cd=m=>Math.min(m.dec,2);
+const meterById=id=>S.meters.find(m=>m.id===id);
+const readingsOf=id=>S.readings.filter(r=>r.m===id).sort((a,b)=>a.t-b.t);
+function modal(html,collect){
+ return new Promise(res=>{
+  const d=$('#dlg');d.innerHTML=html;let done=false;
+  const fin=v=>{if(done)return;done=true;let out=v;try{if(collect)out=collect(d,v)}catch(e){out=v}try{d.close()}catch(e){}d.onclick=null;d.onclose=null;res(out)};
+  d.onclick=e=>{const b=e.target.closest('[data-val]');if(b)fin(b.dataset.val)};
+  d.onclose=()=>fin(null);
+  d.showModal();
+ });
+}
+function applyTheme(){
+ const t=S.set.theme,mq=window.matchMedia?matchMedia('(prefers-color-scheme: light)'):null;
+ const light=t==='light'||(t==='auto'&&mq&&mq.matches);
+ document.documentElement.dataset.theme=light?'light':'dark';
+ const m=$('meta[name=theme-color]');if(m)m.content=light?'#F0F5F1':'#10231F';
+}
+if(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').addEventListener)matchMedia('(prefers-color-scheme: light)').addEventListener('change',applyTheme);
+
+/* ---------- Foto-Zuschnitt ---------- */
+const CR={img:null,src:null,rot:0,rect:{x:.1,y:.38,w:.8,h:.2},drag:null,cv:null,url:null,prevUrl:null};
+function crReset(){
+ if(CR.url)URL.revokeObjectURL(CR.url);if(CR.prevUrl)URL.revokeObjectURL(CR.prevUrl);
+ CR.img=null;CR.src=null;CR.rot=0;CR.cv=null;CR.url=null;CR.prevUrl=null;CR.drag=null;
+}
+function crBuild(){
+ const max=1800;let w=CR.img.naturalWidth,h=CR.img.naturalHeight;const k=Math.min(1,max/Math.max(w,h));w=Math.round(w*k);h=Math.round(h*k);
+ const sw=CR.rot%180!==0,c=document.createElement('canvas');c.width=sw?h:w;c.height=sw?w:h;
+ const x=c.getContext('2d');x.translate(c.width/2,c.height/2);x.rotate(CR.rot*Math.PI/180);x.drawImage(CR.img,-w/2,-h/2,w,h);
+ CR.src=c;
+}
+function crDraw(){
+ const cv=CR.cv;if(!cv||!CR.src)return;
+ const dpr=window.devicePixelRatio||1,W=cv.clientWidth||320,H=Math.round(W*CR.src.height/CR.src.width);
+ cv.style.height=H+'px';
+ if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+ const g=cv.getContext('2d'),acc=getComputedStyle(document.documentElement).getPropertyValue('--pri').trim()||'#54D6A0';
+ g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);g.drawImage(CR.src,0,0,W,H);
+ const r=CR.rect,x=r.x*W,y=r.y*H,w=r.w*W,h=r.h*H;
+ g.fillStyle='rgba(0,0,0,.55)';g.beginPath();g.rect(0,0,W,H);g.rect(x,y,w,h);g.fill('evenodd');
+ g.strokeStyle=acc;g.lineWidth=2;g.strokeRect(x,y,w,h);g.fillStyle=acc;
+ for(const [cx,cy] of [[x,y],[x+w,y],[x,y+h],[x+w,y+h]]){g.beginPath();g.arc(cx,cy,10,0,7);g.fill()}
+}
+function crBind(cv){
+ CR.cv=cv;cv.style.touchAction='none';
+ const pos=e=>{const b=cv.getBoundingClientRect();return {x:(e.clientX-b.left)/b.width,y:(e.clientY-b.top)/b.height,W:b.width,H:b.height}};
+ const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ cv.onpointerdown=e=>{
+  const p=pos(e),r=CR.rect,hit=(cx,cy)=>Math.hypot((p.x-cx)*p.W,(p.y-cy)*p.H)<30;let mode;
+  if(hit(r.x,r.y))mode='nw';else if(hit(r.x+r.w,r.y))mode='ne';else if(hit(r.x,r.y+r.h))mode='sw';else if(hit(r.x+r.w,r.y+r.h))mode='se';
+  else if(p.x>r.x&&p.x<r.x+r.w&&p.y>r.y&&p.y<r.y+r.h)mode='move';else mode='new';
+  CR.drag={mode,sx:p.x,sy:p.y,r:{...r}};
+  try{cv.setPointerCapture(e.pointerId)}catch(err){}
+  e.preventDefault();
+ };
+ cv.onpointermove=e=>{
+  const d=CR.drag;if(!d)return;const p=pos(e),o=d.r,dx=p.x-d.sx,dy=p.y-d.sy;let x,y,w,h;
+  if(d.mode==='move'){x=clamp(o.x+dx,0,1-o.w);y=clamp(o.y+dy,0,1-o.h);w=o.w;h=o.h}
+  else{
+   let x1=o.x,y1=o.y,x2=o.x+o.w,y2=o.y+o.h;
+   if(d.mode==='new'){x1=d.sx;y1=d.sy;x2=p.x;y2=p.y}
+   else{if(d.mode[1]==='w')x1=o.x+dx;else x2=o.x+o.w+dx;if(d.mode[0]==='n')y1=o.y+dy;else y2=o.y+o.h+dy}
+   x1=clamp(x1,0,1);x2=clamp(x2,0,1);y1=clamp(y1,0,1);y2=clamp(y2,0,1);
+   x=Math.min(x1,x2);y=Math.min(y1,y2);w=Math.abs(x2-x1);h=Math.abs(y2-y1);
+  }
+  CR.rect={x,y,w,h};crDraw();
+ };
+ const end=()=>{
+  if(!CR.drag)return;CR.drag=null;const r=CR.rect;
+  if(r.w<.03||r.h<.03){CR.rect={x:.1,y:.38,w:.8,h:.2};crDraw()}
+  crPreview();
+ };
+ cv.onpointerup=end;cv.onpointercancel=end;
+}
+function crRender(maxW){
+ const s=CR.src,r=CR.rect,sx=r.x*s.width,sy=r.y*s.height,sw=Math.max(8,r.w*s.width),sh=Math.max(8,r.h*s.height),k=Math.min(1,maxW/sw);
+ const c=document.createElement('canvas');c.width=Math.max(1,Math.round(sw*k));c.height=Math.max(1,Math.round(sh*k));
+ c.getContext('2d').drawImage(s,sx,sy,sw,sh,0,0,c.width,c.height);return c;
+}
+function crPreview(){
+ const img=$('#cropimg');if(!img||!CR.src)return;
+ crRender(900).toBlob(b=>{if(!b)return;if(CR.prevUrl)URL.revokeObjectURL(CR.prevUrl);CR.prevUrl=URL.createObjectURL(b);img.src=CR.prevUrl},'image/jpeg',.9);
+}
+const crBlob=()=>new Promise(res=>crRender(1200).toBlob(b=>res(b),'image/jpeg',.88));
+async function handlePhoto(file){
+ if(!file)return;
+ try{
+  const buf=await file.arrayBuffer(),meta=exifTime(buf)||fnDate(file.name),when=meta||file.lastModified||0;
+  const url=URL.createObjectURL(new Blob([buf],{type:file.type||'image/jpeg'}));
+  const img=await new Promise((ok,err)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>err(new Error('Das Foto konnte nicht geladen werden.'));i.src=url});
+  crReset();CR.img=img;CR.url=url;CR.rot=0;crBuild();
+  const mm=VIEW==='read'?curMeter():null;
+  CR.rect=(mm&&mm.crop)?{...mm.crop}:{x:.1,y:.38,w:.8,h:.2};
+  if(when&&when<Date.now()+60000){
+   const s=toLocalInput(when);
+   if(VIEW==='setup')W.dt=s;else{R.dt=s;R.photoNote=meta?'Datum und Uhrzeit stammen aus dem Foto.':''}
+  }
+  render();
+ }catch(e){toast(e.message||'Das Foto konnte nicht geladen werden.')}
+}
+function photoPicker(){
+ return '<p class="mu sm">Das Foto bleibt auf deinem Gerät und dient der späteren Nachkontrolle.</p>'+
+ '<div class="row"><button class="btn" data-act="camera">'+ico('cam')+' Foto aufnehmen</button><button class="btn sec" data-act="library">'+ico('img')+' Aus Fotos wählen</button></div>'+
+ '<details class="help"><summary>Tipps für ein gutes Foto</summary><ul class="tips"><li>Ohne Blitz fotografieren, er spiegelt auf der Scheibe.</li><li>Leicht schräg zur Scheibe halten, damit sich nichts spiegelt.</li><li>Möglichst gerade und so nah, dass die Ziffern groß im Bild sind.</li><li>Auf Schärfe achten, bei Bedarf kurz antippen.</li></ul></details>';
+}
+function photoEditor(){
+ return '<canvas id="crop" class="crop" aria-label="Foto mit Auswahlrahmen"></canvas><p class="mu sm" style="margin-top:8px">Ziehe den Rahmen auf die Ziffern des Zählerstands. Die Ecken ändern die Größe.</p>'+
+ '<div class="row"><button class="btn sec sm" data-act="rotate">'+ico('rot')+' Drehen</button><button class="btn sec sm" data-act="newPhoto">Anderes Foto</button><button class="btn ghost sm" data-act="dropPhoto">Entfernen</button></div>';
+}
+
+/* ---------- Zustand und Router ---------- */
+let VIEW='home';
+let R={mid:null,digits:[],dt:'',photoNote:'',scan:'',scanMsg:'',helpOpen:false};
+let H={mid:null};
+let W=null;
+const curMeter=()=>meterById(R.mid)||S.meters[0];
+function go(v){VIEW=v;render();window.scrollTo(0,0)}
+function render(){
+ const setup=VIEW==='setup';
+ $('#tabs').style.display=setup?'none':'flex';
+ $('#ttl').textContent=(VIEW==='setup'&&W&&W.step==='welcome')?APP.name:(TITLES[VIEW]||APP.name);
+ $('#view').innerHTML=VIEW==='home'?viewHome():VIEW==='read'?viewRead():VIEW==='hist'?viewHist():VIEW==='set'?viewSet():viewSetup();
+ $$('#tabs button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===VIEW?'page':'false'));
+ if(CR.src){if($('#crop')){crBind($('#crop'));crDraw()}crPreview()}
+}
+function buildTabs(){$$('#tabs button').forEach((b,i)=>{b.innerHTML=ico(TABS[i][1])+'<span>'+TABS[i][2]+'</span>'})}
+
+/* ---------- Übersicht ---------- */
+function rollers(val){
+ let dec=false,h='';
+ for(const ch of val){if(ch===','){dec=true;h+='<i class="rs">,</i>'}else h+='<i class="rd'+(dec?' r':'')+'">'+ch+'</i>'}
+ return '<span aria-label="'+esc(val)+'">'+h+'</span>';
+}
+function spark(vals){
+ if(vals.length<2)return '';
+ const mx=Math.max(...vals),mn=Math.min(...vals),w=84,h=30,rg=mx-mn||1;
+ const pts=vals.map((v,i)=>(i*(w-4)/(vals.length-1)+2).toFixed(1)+','+(h-3-((v-mn)/rg)*(h-6)).toFixed(1)).join(' ');
+ return '<svg class="spark" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="var(--mc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function tile(m){
+ const rs=readingsOf(m.id),last=rs[rs.length-1],iv=intervalsOf(rs),li=iv[iv.length-1];
+ let info;
+ if(!last)info='Noch keine Ablesung.';
+ else if(!li)info='<span class="mu">Erster Stand. Mit der nächsten Ablesung erscheint der Verbrauch.</span>';
+ else info='<span><b>'+nf(li.cons,cd(m))+' '+esc(m.unit)+'</b> in '+Math.round(li.days)+' Tagen'+(li.est?' (geschätzt)':'')+'<br><span class="mu">'+fmtAuto(li.rate)+' '+esc(m.unit)+' pro Tag</span></span>';
+ const sp=spark(iv.filter(x=>!x.est).slice(-10).map(x=>x.rate));
+ return '<article class="card" style="--mc:var(--c-'+m.col+')">'+
+  '<div class="tile-h"><span class="mi">'+ico(MEDIA[m.medium].icon)+'</span><div><div class="tn">'+esc(m.name)+'</div><div class="mu sm">'+(m.number?'Nr. '+esc(m.number):esc(MEDIA[m.medium].label))+'</div></div></div>'+
+  (last?'<div class="tile-v">'+rollers(fmtValue(last.v,m.pre,m.dec))+' <span class="mu sm">'+esc(m.unit)+'</span></div><div class="mu sm">Stand vom '+fmtFull(last.t)+'</div>':'')+
+  '<div class="tile-i">'+info+sp+'</div>'+
+  '<button class="btn sm" data-act="readMeter" data-id="'+m.id+'">'+ico('cam')+' Ablesen</button></article>';
+}
+function viewHome(){
+ if(!S.meters.length)return '<div class="card"><p>Noch kein Zähler angelegt.</p><button class="btn" data-act="addMeter">'+ico('plus')+' Zähler einrichten</button></div>';
+ const now=Date.now();let h='';
+ const due=S.meters.filter(m=>{const rs=readingsOf(m.id);return rs.length&&now-rs[rs.length-1].t>32*DAY});
+ if(due.length)h+='<div class="banner">'+ico('warn')+'<div><b>Ablesung fällig</b><br>'+due.map(m=>esc(m.name)).join(', ')+': letzte Ablesung vor mehr als 32 Tagen.</div></div>';
+ if(S.readings.length>=4&&(!S.set.lastBackup||now-S.set.lastBackup>60*DAY))h+='<div class="banner">'+ico('warn')+'<div><b>Sicherung empfohlen</b><br>Die Daten liegen nur auf diesem Gerät. <a href="#" data-act="go" data-v="set" style="color:var(--pri)">Jetzt unter Einstellungen sichern</a></div></div>';
+ h+=S.meters.map(tile).join('');
+ h+='<button class="btn sec wide" data-act="addMeter">'+ico('plus')+' Zähler hinzufügen</button>';
+ return h;
+}
+
+/* ---------- Ablesen ---------- */
+function rDigits(){
+ const m=curMeter(),rs=readingsOf(m.id),last=rs[rs.length-1];
+ R.digits=last?digitString(last.v,m.pre,m.dec).split(''):Array(m.pre+m.dec).fill('');
+}
+function viewRead(){
+ if(!S.meters.length)return '<div class="card"><p>Lege zuerst einen Zähler an.</p><button class="btn" data-act="addMeter">Zähler einrichten</button></div>';
+ if(!meterById(R.mid)){R.mid=S.meters[0].id;rDigits()}
+ if(!R.digits.length)rDigits();
+ if(!R.dt)R.dt=toLocalInput(Date.now());
+ const m=curMeter(),rs=readingsOf(m.id),last=rs[rs.length-1],N=m.pre+m.dec;
+ const chips=S.meters.map(x=>'<button class="chip" data-act="pickMeter" data-id="'+x.id+'" aria-pressed="'+(x.id===m.id)+'" style="--mc:var(--c-'+x.col+')"><span class="dot"></span>'+esc(x.name)+'</button>').join('');
+ let rl='';
+ for(let i=0;i<N;i++){
+  if(i===m.pre&&m.dec>0)rl+='<span class="sep">,</span>';
+  rl+='<input inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="Stelle '+(i+1)+'" data-i="'+i+'" class="'+(i>=m.pre?'dd':'')+'" value="'+esc(R.digits[i]||'')+'">';
+ }
+ return '<section class="card"><h2>Zähler</h2><div class="chips">'+chips+'</div></section>'+
+ '<section class="card"><h2>Foto</h2>'+(CR.src?photoEditor():photoPicker())+'</section>'+
+ '<section class="card"><h2>Zählerstand</h2>'+
+  (CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+
+  '<p class="mu sm">'+(last?'Vorbelegt mit dem letzten Stand ('+fmtValue(last.v,m.pre,m.dec)+' vom '+fmtDay(last.t)+'). Ändere nur die Stellen, die abweichen.':'Trage die Stellen so ein, wie sie auf dem Zähler stehen.')+'</p>'+
+  '<div class="rollers">'+rl+'</div>'+
+  '<label class="fld">Datum und Uhrzeit<input type="datetime-local" id="rdt" value="'+esc(R.dt)+'"></label>'+
+  (R.photoNote?'<p class="mu sm">'+esc(R.photoNote)+'</p>':'')+
+  '<details class="help"'+(R.helpOpen?' open':'')+'><summary>Erkennung vom iPhone nutzen</summary>'+
+   '<p class="sm mu">Drücke im Ausschnitt oben lange auf die Ziffern, wähle Kopieren und füge den Text hier ein. Oder tippe ins Feld und wähle „Text aus Kamera“.</p>'+
+   '<label class="fld">Erkannter Text<textarea id="scan" rows="3" autocomplete="off">'+esc(R.scan)+'</textarea></label>'+
+   '<button class="btn sec sm" data-act="scanApply">Übernehmen</button>'+
+   (R.scanMsg?'<p class="msg'+(R.scanMsg.startsWith('Alle')||R.scanMsg.startsWith('Die Stellen')?'':' bad')+'">'+esc(R.scanMsg)+'</p>':'')+
+  '</details>'+
+  '<button class="btn wide" data-act="saveReading">Ablesung speichern</button></section>';
+}
+function readDigitsFromDom(){const m=curMeter(),N=m.pre+m.dec;return Array.from({length:N},(_,i)=>R.digits[i]||'')}
+async function saveReading(){
+ const m=curMeter(),ds=readDigitsFromDom();
+ if(ds.some(x=>x===''))return toast('Bitte alle Stellen ausfüllen.');
+ const v=valueFromDigits(ds.join(''),m.pre,m.dec),t=new Date(R.dt).getTime();
+ if(!isFinite(t))return toast('Bitte Datum und Uhrzeit prüfen.');
+ const rs=readingsOf(m.id),warns=checkReading(rs,v,t,cd(m)),extra={};
+ const list=warns.map(w=>'<li>'+esc(w.text)+'</li>').join('');
+ if(warns.some(w=>w.k==='low')){
+  const r=await modal('<h3>Niedrigerer Stand</h3><ul class="tips">'+list+'</ul><p>Mögliche Ursachen: Der Zähler wurde getauscht, oder die Stellen sind falsch eingetragen.</p>'+
+   '<label class="fld">Endstand des alten Zählers (optional)<input id="mw-end" inputmode="decimal"></label>'+
+   '<label class="fld">Anfangsstand des neuen Zählers (meist 0)<input id="mw-start" inputmode="decimal" value="0"></label>'+
+   '<label class="fld">Neue Zählernummer (optional)<input id="mw-nr" autocomplete="off"></label>'+
+   '<div class="row"><button class="btn" data-val="swap">Ja, Zähler getauscht</button><button class="btn sec" data-val="fix">Nein, Stand korrigieren</button></div>',
+   (d,v)=>({act:v,end:num($('#mw-end',d).value),start:num($('#mw-start',d).value),nr:$('#mw-nr',d).value.trim()}));
+  if(!r||r.act!=='swap')return;
+  extra.w=1;if(r.end!=null)extra.end=r.end;extra.start=r.start||0;if(r.nr){extra.nr=r.nr;m.number=r.nr}
+ }else if(warns.length){
+  const a=await modal('<h3>Bitte prüfen</h3><ul class="tips">'+list+'</ul><div class="row"><button class="btn" data-val="ok">Trotzdem speichern</button><button class="btn sec" data-val="back">Zurück</button></div>');
+  if(a!=='ok')return;
+ }
+ const id=uid(),rd={id,m:m.id,t,v,...extra};
+ if(CR.src){const blob=await crBlob();if(blob&&await DB.put(id,blob))rd.photo=id;m.crop={...CR.rect}}
+ S.readings.push(rd);
+ if(!save())return;
+ R.dt='';R.scan='';R.scanMsg='';R.photoNote='';R.helpOpen=false;R.digits=[];crReset();
+ toast('Ablesung gespeichert.');go('home');
+}
+function applyScan(){
+ const m=curMeter(),rs=readingsOf(m.id),last=rs[rs.length-1],sch={pre:m.pre,dec:m.dec};
+ const r=pickScan(R.scan,sch,last?last.v:null,[m.number]);
+ R.helpOpen=true;R.scanMsg=r.msg;
+ if(r.kind==='full')R.digits=r.digits.split('');
+ else if(r.kind==='int')R.digits=r.digits.split('').concat(Array(m.dec).fill(''));
+ render();
+}
+
+/* ---------- Verlauf ---------- */
+function viewHist(){
+ if(!S.meters.length)return '<div class="card"><p>Noch keine Zähler.</p></div>';
+ if(!meterById(H.mid))H.mid=S.meters[0].id;
+ const m=meterById(H.mid),rs=readingsOf(m.id),iv=intervalsOf(rs),byB=new Map(iv.map(x=>[x.b.id,x]));
+ const chips=S.meters.map(x=>'<button class="chip" data-act="pickHist" data-id="'+x.id+'" aria-pressed="'+(x.id===m.id)+'" style="--mc:var(--c-'+x.col+')"><span class="dot"></span>'+esc(x.name)+'</button>').join('');
+ const rows=[...rs].reverse().map(r=>{
+  const x=byB.get(r.id),d=x?'+'+nf(x.cons,cd(m))+' '+esc(m.unit)+' · '+Math.round(x.days)+' Tage'+(x.est?' (geschätzt)':''):'Erster Stand';
+  return '<button class="item" data-act="editReading" data-id="'+r.id+'"><div><b class="mono">'+fmtValue(r.v,m.pre,m.dec)+'</b><div class="mu sm">'+fmtFull(r.t)+'</div></div><div class="mu sm right">'+d+(r.photo?' '+ico('photo','s'):'')+(r.w?' '+ico('swap','s'):'')+'</div></button>';
+ }).join('');
+ return '<section class="card"><div class="chips">'+chips+'</div></section><section class="card" style="padding:6px 14px">'+(rows||'<p class="mu" style="padding:10px 0">Noch keine Ablesungen.</p>')+'</section>';
+}
+async function editReading(id){
+ const r=S.readings.find(x=>x.id===id);if(!r)return;const m=meterById(r.m);
+ let img='';
+ if(r.photo){const b=await DB.get(r.photo);if(b&&b!==true)img='<img class="cropimg" src="'+URL.createObjectURL(b)+'" alt="Foto der Ablesung">'}
+ const res=await modal('<h3>'+esc(m.name)+'</h3>'+img+
+  '<label class="fld">Datum und Uhrzeit<input type="datetime-local" id="ed-t" value="'+toLocalInput(r.t)+'"></label>'+
+  '<label class="fld">Zählerstand<input id="ed-v" inputmode="decimal" value="'+fmtValue(r.v,m.pre,m.dec)+'"></label>'+
+  '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>',
+  (d,v)=>({act:v,t:$('#ed-t',d).value,val:$('#ed-v',d).value}));
+ if(!res||!res.act||res.act==='close')return;
+ if(res.act==='del'){
+  const a=await modal('<h3>Ablesung löschen?</h3><p>Dieser Vorgang lässt sich nicht rückgängig machen.</p><div class="row"><button class="btn danger" data-val="yes">Löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
+  if(a!=='yes')return;
+  if(r.photo)DB.del(r.photo);
+  S.readings=S.readings.filter(x=>x.id!==id);save();render();return toast('Ablesung gelöscht.');
+ }
+ const p=parseValueString(res.val),t=new Date(res.t).getTime();
+ if(!p||!isFinite(t))return toast('Datum oder Zählerstand sind ungültig.');
+ r.v=p.value;r.t=t;save();render();toast('Gespeichert.');
+}
+
+/* ---------- Einstellungen ---------- */
+function viewSet(){
+ const ml=S.meters.map(m=>'<button class="item" data-act="editMeter" data-id="'+m.id+'" style="--mc:var(--c-'+m.col+')"><span style="display:flex;align-items:center;gap:12px"><span class="mi">'+ico(MEDIA[m.medium].icon)+'</span><span><b>'+esc(m.name)+'</b><br><span class="mu sm">'+(m.number?'Nr. '+esc(m.number)+' · ':'')+m.pre+' Stellen vor, '+m.dec+' nach dem Komma</span></span></span><span class="mu">›</span></button>').join('');
+ const th=S.set.theme;
+ return '<section class="card" style="padding:6px 14px"><h2 style="padding-top:10px">Zähler</h2>'+(ml||'<p class="mu">Noch keine Zähler.</p>')+'<div style="padding:10px 0"><button class="btn sec wide" data-act="addMeter">'+ico('plus')+' Zähler hinzufügen</button></div></section>'+
+ '<section class="card"><h2>Darstellung</h2><label class="fld">Farbmodus<select id="theme"><option value="dark"'+(th==='dark'?' selected':'')+'>Dunkel (Standard)</option><option value="light"'+(th==='light'?' selected':'')+'>Hell</option><option value="auto"'+(th==='auto'?' selected':'')+'>Wie das Telefon</option></select></label></section>'+
+ '<section class="card"><h2>Daten</h2><p class="mu sm">Alle Daten liegen auf diesem Gerät. Fotos sind in der Sicherung nicht enthalten.'+(S.set.lastBackup?' Letzte Sicherung: '+fmtDay(S.set.lastBackup)+'.':' Es gibt noch keine Sicherung.')+'</p>'+
+ '<div class="row"><button class="btn" data-act="exportData">Sicherung speichern</button><button class="btn sec" data-act="importData">Sicherung laden</button></div>'+
+ '<div class="row"><button class="btn danger" data-act="wipe">Alle Daten löschen</button></div></section>'+
+ '<p class="mu sm" style="text-align:center">'+APP.name+' '+APP.version+'</p>';
+}
+let EM=null;
+const swHtml=()=>COLS.map(c=>'<button class="sw" data-sw="'+c+'" aria-label="Farbe '+c+'" aria-pressed="'+(c===EM.col)+'" style="--mc:var(--c-'+c+')"></button>').join('');
+async function editMeter(id){
+ const m=meterById(id);if(!m)return;
+ EM={col:m.col};
+ const res=await modal('<h3>Zähler bearbeiten</h3>'+
+  '<label class="fld">Name<input id="em-n" value="'+esc(m.name)+'" autocomplete="off"></label>'+
+  '<label class="fld">Zählernummer<input id="em-nr" value="'+esc(m.number||'')+'" autocomplete="off"></label>'+
+  (m.medium==='sonst'?'<label class="fld">Einheit<input id="em-u" value="'+esc(m.unit)+'" autocomplete="off"></label>':'')+
+  '<div class="fld">Farbe</div><div class="swatches" id="em-sw">'+swHtml()+'</div>'+
+  '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Zähler löschen</button></div>',
+  (dd,v)=>({act:v,name:$('#em-n',dd).value.trim(),nr:$('#em-nr',dd).value.trim(),unit:$('#em-u',dd)?$('#em-u',dd).value.trim():null,col:EM.col}));
+ EM=null;
+ if(!res||!res.act||res.act==='close')return;
+ if(res.act==='del'){
+  const n=readingsOf(m.id).length;
+  const a=await modal('<h3>Zähler löschen?</h3><p>„'+esc(m.name)+'“ und '+n+' Ablesung'+(n===1?'':'en')+' werden gelöscht. Das lässt sich nicht rückgängig machen.</p><div class="row"><button class="btn danger" data-val="yes">Löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
+  if(a!=='yes')return;
+  S.readings.filter(r=>r.m===m.id&&r.photo).forEach(r=>DB.del(r.photo));
+  S.readings=S.readings.filter(r=>r.m!==m.id);S.meters=S.meters.filter(x=>x.id!==m.id);save();render();return toast('Zähler gelöscht.');
+ }
+ if(!res.name)return toast('Der Name darf nicht leer sein.');
+ m.name=res.name;m.number=res.nr;m.col=res.col;if(res.unit!==null)m.unit=res.unit;save();render();toast('Gespeichert.');
+}
+function exportData(){
+ const blob=new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download='zaehlwerk-sicherung-'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+ S.set.lastBackup=Date.now();save();render();toast('Sicherung wurde erstellt.');
+}
+async function importFile(f){
+ if(!f)return;
+ try{
+  const o=JSON.parse(await f.text());
+  if(!(o&&o.v&&Array.isArray(o.meters)&&Array.isArray(o.readings)))throw new Error('Das ist keine Zählwerk-Sicherung.');
+  const a=S.meters.length?await modal('<h3>Sicherung laden?</h3><p>Die aktuellen Daten werden durch die Sicherung ersetzt ('+o.meters.length+' Zähler, '+o.readings.length+' Ablesungen).</p><div class="row"><button class="btn" data-val="yes">Ersetzen</button><button class="btn sec" data-val="no">Abbrechen</button></div>'):'yes';
+  if(a!=='yes')return;
+  S=migrate(o);save();VIEW='home';render();toast('Sicherung geladen.');
+ }catch(e){toast(e.message||'Die Datei ist nicht lesbar.')}
+}
+async function wipe(){
+ const a=await modal('<h3>Alle Daten löschen?</h3><p>Zähler, Ablesungen und Fotos werden von diesem Gerät entfernt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung.</p><div class="row"><button class="btn danger" data-val="yes">Alles löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
+ if(a!=='yes')return;
+ S.readings.forEach(r=>{if(r.photo)DB.del(r.photo)});S=blank();save();startSetup(true);toast('Alle Daten wurden gelöscht.');
+}
+
+/* ---------- Einrichtungsassistent ---------- */
+function pickColor(medium){
+ const used=S.meters.map(m=>m.col),pref=MEDIA[medium].col;
+ if(!used.includes(pref))return pref;
+ return COLS.find(c=>!used.includes(c))||pref;
+}
+function uniqueName(base){
+ if(!S.meters.some(m=>m.name===base))return base;
+ let n=2;while(S.meters.some(m=>m.name===base+' '+n))n++;return base+' '+n;
+}
+function startSetup(first){
+ const f=!!first&&!S.meters.length;
+ W={first:f,step:f?'welcome':'medium',medium:'gas',name:'',unit:'',number:'',col:'',valStr:'',dt:toLocalInput(Date.now()),nums:[]};
+ crReset();VIEW='setup';render();window.scrollTo(0,0);
+}
+const STEPS=['medium','id','photo','value'];
+function wDefaults(){
+ W.name=uniqueName(MEDIA[W.medium].label);W.unit=MEDIA[W.medium].unit;W.col=pickColor(W.medium);
+}
+function wCollect(){
+ if(W.step==='id'){
+  W.name=($('#wname')||{}).value||W.name;W.number=(($('#wnum')||{}).value||'').trim();
+  if(W.medium==='sonst'&&$('#wunit'))W.unit=$('#wunit').value.trim();
+ }
+ if(W.step==='value'){W.valStr=($('#wval')||{}).value||'';W.dt=($('#wdt')||{}).value||W.dt}
+}
+function wBar(){const i=Math.max(0,STEPS.indexOf(W.step));return '<div class="steps" aria-label="Schritt '+(i+1)+' von '+STEPS.length+'">'+STEPS.map((s,k)=>'<i class="'+(k<=i?'on':'')+'"></i>').join('')+'</div>'}
+function viewSetup(){
+ if(!W)startSetup(false);
+ const nav=(back,next,nl)=>'<div class="row">'+(back?'<button class="btn sec" data-act="wBack">Zurück</button>':'')+'<button class="btn" style="flex:1" data-act="'+next+'">'+(nl||'Weiter')+'</button></div>';
+ if(W.step==='welcome')return '<div class="hero"><div class="logo" aria-hidden="true"><i>0</i><i>7</i><i>6</i></div><h2 style="font-size:24px">Willkommen bei Zählwerk</h2><p class="mu">Zählerstände erfassen, prüfen und auswerten. Die App startet leer. Richte jetzt deinen ersten Zähler ein, das dauert etwa eine Minute.</p></div>'+
+  '<div class="row" style="justify-content:center"><button class="btn" data-act="wStart">Los geht’s</button></div><div class="row" style="justify-content:center"><button class="btn ghost" data-act="importData">Sicherung laden</button></div>';
+ if(W.step==='medium'){
+  if(!W.name)wDefaults();
+  return wBar()+'<section class="card"><h2>Was möchtest du erfassen?</h2><div class="kinds">'+Object.entries(MEDIA).map(([k,m])=>'<button class="kind" data-act="wMedium" data-k="'+k+'" aria-pressed="'+(W.medium===k)+'" style="--mc:var(--c-'+m.col+')">'+ico(m.icon)+m.label+'</button>').join('')+'</div></section>'+
+   '<div class="row">'+(S.meters.length?'<button class="btn sec" data-act="wCancel">Abbrechen</button>':(W.first?'<button class="btn sec" data-act="wBack">Zurück</button>':''))+'<button class="btn" style="flex:1" data-act="wNext">Weiter</button></div>';
+ }
+ if(W.step==='id'){
+  const cands=W.nums.length?'<div class="chips">'+W.nums.map(c=>'<button class="chip" data-act="wNumPick" data-n="'+esc(c)+'">'+esc(c)+'</button>').join('')+'</div>':'';
+  return wBar()+'<section class="card"><h2>Name und Zählernummer</h2>'+
+   '<label class="fld">Name<input id="wname" value="'+esc(W.name)+'" autocomplete="off"></label>'+
+   (W.medium==='sonst'?'<label class="fld">Einheit<input id="wunit" value="'+esc(W.unit)+'" autocomplete="off" placeholder="z. B. m³ oder kWh"></label>':'')+
+   '<label class="fld">Zählernummer (empfohlen)<input id="wnum" value="'+esc(W.number)+'" autocomplete="off"></label>'+
+   '<details class="help"><summary>Zählernummer scannen</summary><p class="sm mu">Tippe ins Feld unten, wähle „Text aus Kamera“ und richte die Kamera auf das Typenschild. Die App schlägt dann die passenden Nummern vor.</p><label class="fld">Gescannter Text<textarea id="wscan" rows="3" autocomplete="off"></textarea></label>'+cands+'</details>'+
+   '<p class="mu sm">Die Nummer steht auf dem Zähler und auf deiner Rechnung. Sie hilft später, einen Zählerwechsel zu erkennen.</p></section>'+nav(true,'wNext');
+ }
+ if(W.step==='photo'){
+  return wBar()+'<section class="card"><h2>Foto vom Zähler</h2><p class="mu sm">Optional. Markiere einmal, wo der Zählerstand steht. Die App merkt sich den Ausschnitt für die nächsten Ablesungen.</p>'+(CR.src?photoEditor():photoPicker())+'</section>'+
+   '<div class="row"><button class="btn sec" data-act="wBack">Zurück</button><button class="btn" style="flex:1" data-act="wNext">'+(CR.src?'Weiter':'Ohne Foto weiter')+'</button></div>';
+ }
+ return wBar()+'<section class="card"><h2>Erster Zählerstand</h2>'+(CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+
+  '<p class="mu sm">Tippe den Stand genau so ein, wie er auf dem Zähler steht, mit führenden Nullen und Komma, zum Beispiel 02852,659.</p>'+
+  '<label class="fld">Zählerstand<input id="wval" inputmode="decimal" autocomplete="off" value="'+esc(W.valStr)+'" placeholder="00000,000"></label><div id="wsch" class="msg"></div>'+
+  '<label class="fld">Stand vom<input type="datetime-local" id="wdt" value="'+esc(W.dt)+'"></label></section>'+
+  '<div class="row"><button class="btn sec" data-act="wBack">Zurück</button><button class="btn" style="flex:1" data-act="wFinish">Zähler anlegen</button></div>';
+}
+async function wFinish(){
+ wCollect();
+ const p=parseValueString(W.valStr),t=new Date(W.dt).getTime();
+ if(!p)return toast('Bitte den Zählerstand eintragen, zum Beispiel 02852,659.');
+ if(!isFinite(t))return toast('Bitte Datum und Uhrzeit prüfen.');
+ const m={id:uid(),medium:W.medium,name:W.name.trim()||MEDIA[W.medium].label,unit:W.unit,number:W.number,col:W.col,pre:p.pre,dec:p.dec,created:Date.now()};
+ if(CR.src)m.crop={...CR.rect};
+ const id=uid(),rd={id,m:m.id,t,v:p.value};
+ if(CR.src){const blob=await crBlob();if(blob&&await DB.put(id,blob))rd.photo=id}
+ const first=!S.meters.length;
+ S.meters.push(m);S.readings.push(rd);
+ if(!save())return;
+ crReset();R.mid=m.id;rDigits();
+ const more=await modal('<h3>„'+esc(m.name)+'“ ist eingerichtet</h3><p>Möchtest du einen weiteren Zähler anlegen?</p><div class="row"><button class="btn" data-val="more">Weiteren Zähler anlegen</button><button class="btn sec" data-val="done">Fertig</button></div>');
+ W=null;
+ if(more==='more')startSetup(false);else go('home');
+}
+
+/* ---------- Ereignisse ---------- */
+const ACT={
+ go:el=>go(el.dataset.v),
+ addMeter:()=>startSetup(false),
+ readMeter:el=>{R.mid=el.dataset.id;rDigits();R.dt='';R.photoNote='';go('read')},
+ pickMeter:el=>{R.mid=el.dataset.id;rDigits();render()},
+ pickHist:el=>{H.mid=el.dataset.id;render()},
+ camera:()=>$('#fcam').click(),
+ library:()=>$('#flib').click(),
+ rotate:()=>{if(!CR.img)return;CR.rot=(CR.rot+90)%360;crBuild();CR.rect={x:.1,y:.38,w:.8,h:.2};render()},
+ newPhoto:()=>{crReset();render()},
+ dropPhoto:()=>{crReset();R.photoNote='';render()},
+ scanApply:()=>applyScan(),
+ saveReading:()=>saveReading(),
+ editReading:el=>editReading(el.dataset.id),
+ editMeter:el=>editMeter(el.dataset.id),
+ exportData:()=>exportData(),
+ importData:()=>$('#fimp').click(),
+ wipe:()=>wipe(),
+ wStart:()=>{W.step='medium';render()},
+ wMedium:el=>{W.medium=el.dataset.k;wDefaults();render()},
+ wNext:()=>{wCollect();const i=STEPS.indexOf(W.step);
+  if(W.step==='id'&&!W.name.trim())return toast('Bitte einen Namen eingeben.');
+  W.step=STEPS[Math.min(i+1,STEPS.length-1)];render();window.scrollTo(0,0)},
+ wBack:()=>{wCollect();const i=STEPS.indexOf(W.step);if(i<=0){if(W.first){W.step='welcome';render()}return}W.step=STEPS[i-1];render();window.scrollTo(0,0)},
+ wCancel:()=>{crReset();W=null;go('home')},
+ wNumPick:el=>{W.number=el.dataset.n;if($('#wnum'))$('#wnum').value=W.number;toast('Zählernummer übernommen.')},
+ wFinish:()=>wFinish()
+};
+document.addEventListener('click',e=>{
+ const sw=e.target.closest('[data-sw]');
+ if(sw&&EM){EM.col=sw.dataset.sw;$('#em-sw').innerHTML=swHtml();return}
+ const el=e.target.closest('[data-act]');
+ if(el&&ACT[el.dataset.act]){e.preventDefault();ACT[el.dataset.act](el,e)}
+});
+document.addEventListener('input',e=>{
+ const t=e.target;
+ if(t.matches('.rollers input')){
+  t.value=t.value.replace(/\D/g,'').slice(-1);R.digits[+t.dataset.i]=t.value;
+  if(t.value){const nx=t.parentElement.querySelector('input[data-i="'+(+t.dataset.i+1)+'"]');if(nx)nx.focus()}
+ }else if(t.id==='rdt')R.dt=t.value;
+ else if(t.id==='scan')R.scan=t.value;
+ else if(t.id==='theme'){S.set.theme=t.value;save();applyTheme()}
+ else if(t.id==='wscan'){W.nums=numberCandidates(t.value);const box=t.closest('details'),old=$('.chips',box);if(old)old.remove();if(W.nums.length){const c=document.createElement('div');c.className='chips';c.innerHTML=W.nums.map(n=>'<button class="chip" data-act="wNumPick" data-n="'+esc(n)+'">'+esc(n)+'</button>').join('');box.appendChild(c)}}
+ else if(t.id==='wval'){const p=parseValueString(t.value),o=$('#wsch');if(o){if(p){o.className='msg';o.textContent='Erkannt: '+p.pre+' Stellen vor, '+p.dec+' nach dem Komma.'}else{o.className='msg bad';o.textContent=t.value?'Bitte nur Ziffern und ein Komma eingeben.':''}}}
+});
+document.addEventListener('keydown',e=>{
+ const t=e.target;
+ if(t.matches&&t.matches('.rollers input')&&e.key==='Backspace'&&!t.value){const pv=t.parentElement.querySelector('input[data-i="'+(+t.dataset.i-1)+'"]');if(pv){pv.focus();pv.select()}}
+});
+document.addEventListener('focusin',e=>{if(e.target.matches&&e.target.matches('.rollers input'))e.target.select()});
+document.addEventListener('paste',e=>{
+ if(e.target.matches&&e.target.matches('.rollers input')){
+  const txt=(e.clipboardData||window.clipboardData).getData('text');e.preventDefault();
+  R.scan=txt;applyScan();
+ }
+});
+$('#fcam').addEventListener('change',e=>{handlePhoto(e.target.files[0]);e.target.value=''});
+$('#flib').addEventListener('change',e=>{handlePhoto(e.target.files[0]);e.target.value=''});
+$('#fimp').addEventListener('change',e=>{importFile(e.target.files[0]);e.target.value=''});
+window.addEventListener('resize',()=>{if(CR.src&&$('#crop')){crDraw()}});
+
+/* ---------- Start ---------- */
+buildTabs();applyTheme();
+DB.open().then(()=>{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})});
+if(!S.meters.length)startSetup(true);else render();
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
