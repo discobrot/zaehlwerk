@@ -116,7 +116,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.1.2'};
+const APP={name:'Zählwerk',version:'0.1.3'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -504,8 +504,8 @@ function viewRead(){
   '<div class="rollers">'+rl+'</div>'+
   '<label class="fld">Datum und Uhrzeit<input type="datetime-local" id="rdt" value="'+esc(R.dt)+'"></label>'+
   (R.photoNote?'<p class="mu sm">'+esc(R.photoNote)+'</p>':'')+
-  '<details class="help"'+(R.helpOpen?' open':'')+'><summary>Erkennung vom iPhone nutzen</summary>'+
-   '<p class="sm mu">Drücke im Ausschnitt oben lange auf die Ziffern, wähle Kopieren und füge den Text hier ein. Oder tippe ins Feld und wähle „Text aus Kamera“.</p>'+
+  '<details class="help"'+(R.helpOpen?' open':'')+'><summary>Optional: Erkannten Text einfügen</summary>'+
+   '<p class="sm mu">Drücke im Ausschnitt oben lange auf die Ziffern, wähle Kopieren und füge den Text hier ein. Das geht nicht auf jedem Gerät. Ist es dir zu umständlich, trage die Stellen oben einfach von Hand ein.</p>'+
    '<label class="fld">Erkannter Text<textarea id="scan" rows="3" autocomplete="off">'+esc(R.scan)+'</textarea></label>'+
    '<button class="btn sec sm" data-act="scanApply">Übernehmen</button>'+
    (R.scanMsg?'<p class="msg'+(R.scanMsg.startsWith('Alle')||R.scanMsg.startsWith('Die Stellen')?'':' bad')+'">'+esc(R.scanMsg)+'</p>':'')+
@@ -681,9 +681,9 @@ function viewSetup(){
   return wBar()+'<section class="card"><h2>Name und Zählernummer</h2>'+
    '<label class="fld">Name<input id="wname" value="'+esc(W.name)+'" autocomplete="off"></label>'+
    (W.medium==='sonst'?'<label class="fld">Einheit<input id="wunit" value="'+esc(W.unit)+'" autocomplete="off" placeholder="z. B. m³ oder kWh"></label>':'')+
-   '<label class="fld">Zählernummer (empfohlen)<input id="wnum" value="'+esc(W.number)+'" autocomplete="off"></label>'+
-   '<details class="help"><summary>Zählernummer scannen</summary><p class="sm mu">Tippe ins Feld unten, wähle „Text aus Kamera“ und richte die Kamera auf das Typenschild. Die App schlägt dann die passenden Nummern vor.</p><label class="fld">Gescannter Text<textarea id="wscan" rows="3" autocomplete="off"></textarea></label>'+cands+'</details>'+
-   '<p class="mu sm">Die Nummer steht auf dem Zähler und auf deiner Rechnung. Sie hilft später, einen Zählerwechsel zu erkennen.</p></section>'+nav(true,'wNext');
+   '<label class="fld">Zählernummer<input id="wnum" value="'+esc(W.number)+'" autocomplete="off" autocapitalize="characters"></label>'+
+   '<p class="mu sm">Die Nummer steht auf dem Zähler und auf deiner Rechnung. Du tippst sie einmal ab. Sie hilft später, einen Zählerwechsel zu erkennen.</p>'+
+   '<details class="help"><summary>Optional: Nummer aus kopiertem Text übernehmen</summary><p class="sm mu">Hast du den Text vom Typenschild kopiert, zum Beispiel in der Fotos-App (Ziffern lange drücken, Kopieren), füge ihn hier ein. Die App zeigt dann die passenden Nummern zum Antippen. Das geht nicht auf jedem Gerät, Abtippen funktioniert immer.</p><label class="fld">Eingefügter Text<textarea id="wscan" rows="3" autocomplete="off"></textarea></label>'+cands+'</details></section>'+nav(true,'wNext');
  }
  if(W.step==='photo'){
   return wBar()+'<section class="card"><h2>Foto vom Zähler</h2><p class="mu sm">Optional. Markiere einmal, wo der Zählerstand steht. Die App merkt sich den Ausschnitt für die nächsten Ablesungen.</p>'+(CR.src?photoEditor():photoPicker())+'</section>'+
