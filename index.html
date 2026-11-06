@@ -161,7 +161,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.3.1'};
+const APP={name:'Zählwerk',version:'0.3.2'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -264,16 +264,16 @@ function exifTime(buf){
 }
 // Intervalle zwischen aufeinanderfolgenden Ablesungen (rs nach Zeit sortiert)
 function intervalsOf(rs){
- const out=[],rates=[];
+ const out=[],rates=[];let lastLong=null;
  for(let i=1;i<rs.length;i++){
   const a=rs[i-1],b=rs[i],days=(b.t-a.t)/DAY;let cons,est=false;
   if(b.w){
    if(b.end!=null&&b.end!==undefined)cons=(b.end-a.v)+(b.v-(b.start||0));
-   else{cons=avg(rates.slice(-6))*days;est=true}
+   else{const base=lastLong!=null?lastLong:avg(rates.slice(-6));cons=Math.max(0,b.v-(b.start||0))+base*days/2;est=true}
   }else cons=b.v-a.v;
   const rate=days>0?cons/days:0;
   out.push({a,b,days,cons,est,rate});
-  if(!est)rates.push(rate);
+  if(!est){rates.push(rate);if(days>=5)lastLong=rate}
  }
  return out;
 }
@@ -760,8 +760,9 @@ async function editReading(id){
  const res=await modal('<h3>'+esc(m.name)+'</h3>'+img+
   '<label class="fld">Datum und Uhrzeit<input type="datetime-local" id="ed-t" value="'+toLocalInput(r.t)+'"></label>'+
   '<label class="fld">Zählerstand<input id="ed-v" inputmode="decimal" value="'+fmtValue(r.v,m.pre,m.dec)+'"></label>'+
+  (r.w?'<div class="fld" style="margin-bottom:2px"><b>Zählerwechsel</b></div><p class="mu sm">Trage den Endstand des alten Zählers ein, wenn du ihn kennst (zum Beispiel aus der Abrechnung). Ohne Endstand wird der Verbrauch dieses Zeitraums geschätzt.</p><label class="fld">Endstand des alten Zählers<input id="ed-end" inputmode="decimal" placeholder="unbekannt" value="'+(r.end!=null?fmtValue(r.end,m.pre,m.dec):'')+'"></label><label class="fld">Anfangsstand des neuen Zählers<input id="ed-start" inputmode="decimal" value="'+fmtValue(r.start||0,m.pre,m.dec)+'"></label>':'')+
   '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>',
-  (d,v)=>({act:v,t:$('#ed-t',d).value,val:$('#ed-v',d).value}));
+  (d,v)=>({act:v,t:$('#ed-t',d).value,val:$('#ed-v',d).value,end:$('#ed-end',d)?$('#ed-end',d).value:null,start:$('#ed-start',d)?$('#ed-start',d).value:null}));
  if(!res||!res.act||res.act==='close')return;
  if(res.act==='del'){
   const a=await modal('<h3>Ablesung löschen?</h3><p>Dieser Vorgang lässt sich nicht rückgängig machen.</p><div class="row"><button class="btn danger" data-val="yes">Löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
@@ -771,6 +772,12 @@ async function editReading(id){
  }
  const p=parseValueString(res.val),t=new Date(res.t).getTime();
  if(!p||!isFinite(t))return toast('Datum oder Zählerstand sind ungültig.');
+ if(r.w&&res.end!=null){
+  const eTxt=res.end.trim(),sTxt=String(res.start||'').trim(),e=eTxt?parseDeNum(eTxt):null,st=sTxt?parseDeNum(sTxt):0;
+  if((eTxt&&e==null)||st==null)return toast('Endstand oder Anfangsstand sind ungültig.');
+  if(e==null)delete r.end;else r.end=e;
+  r.start=st;
+ }
  r.v=p.value;r.t=t;save();render();toast('Gespeichert.');
 }
 
