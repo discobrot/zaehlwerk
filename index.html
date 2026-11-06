@@ -14,11 +14,11 @@
 <title>Zählwerk</title>
 <style>
 :root{color-scheme:dark;--bg:#10231F;--card:#1C4035;--card2:#163329;--line:rgba(240,245,241,.14);--tx:#F0F5F1;--mu:#A9BDB3;--pri:#54D6A0;--onpri:#10231F;--lime:#B6E65A;--bad:#FF6B61;--warn:#F2B21B;--shadow:0 8px 24px rgba(0,0,0,.30);
---c-gas:#E8731A;--c-strom:#F2B21B;--c-wasser:#5BA3F0;--c-garten:#B08CF2;--c-waerme:#EC6FB0;--c-misc:#9AA7A1;--c-cyan:#4FD1E0;--c-sand:#C9A27A;
+--c-gas:#E8731A;--c-strom:#F2B21B;--c-wasser:#3D8BFF;--c-himmel:#7CC8FF;--c-gruen:#43C463;--c-garten:#B08CF2;--c-waerme:#EC6FB0;--c-misc:#9AA7A1;--c-cyan:#4FD1E0;--c-sand:#C9A27A;
 --bg-art:radial-gradient(110% 46% at 100% 0%,rgba(84,214,160,.17) 0%,rgba(84,214,160,0) 62%),radial-gradient(90% 50% at 0% 34%,rgba(28,64,53,.95) 0%,rgba(28,64,53,0) 72%),radial-gradient(130% 52% at 50% 108%,rgba(84,214,160,.34) 0%,rgba(84,214,160,0) 64%),linear-gradient(180deg,#10231F 0%,#0E201B 55%,#0A1814 100%);
 --card-art:linear-gradient(155deg,#23493D 0%,#1C4035 46%,#193A30 100%);--glow:0 8px 22px rgba(84,214,160,.28)}
 html[data-theme=light]{color-scheme:light;--bg:#F0F5F1;--card:#FFFFFF;--card2:#E6EEE9;--line:rgba(16,35,31,.16);--tx:#10231F;--mu:#4C625A;--pri:#12805A;--onpri:#FFFFFF;--lime:#5E8A00;--bad:#C62F26;--warn:#8A6100;--shadow:0 6px 18px rgba(16,35,31,.10);
---c-gas:#C95A0A;--c-strom:#B07800;--c-wasser:#1F6FC9;--c-garten:#7A52D6;--c-waerme:#C23E85;--c-misc:#5C6B64;--c-cyan:#0E8FA3;--c-sand:#8F6A3D;
+--c-gas:#C95A0A;--c-strom:#B07800;--c-wasser:#1F63D8;--c-himmel:#1B86C9;--c-gruen:#1F8F3F;--c-garten:#7A52D6;--c-waerme:#C23E85;--c-misc:#5C6B64;--c-cyan:#0E8FA3;--c-sand:#8F6A3D;
 --bg-art:radial-gradient(110% 46% at 100% 0%,rgba(18,128,90,.16) 0%,rgba(18,128,90,0) 62%),radial-gradient(130% 50% at 50% 108%,rgba(18,128,90,.20) 0%,rgba(18,128,90,0) 64%),linear-gradient(180deg,#F0F5F1 0%,#E6EFE9 100%);
 --card-art:linear-gradient(155deg,#FFFFFF 0%,#F8FCF9 100%);--glow:0 6px 16px rgba(18,128,90,.22)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -58,6 +58,10 @@ p{margin:0 0 10px}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:3px solid var(--pri);outline-offset:1px}
 .crop{width:100%;border-radius:14px;display:block;background:#000}
 .cropimg{width:100%;display:block;border-radius:14px;margin:6px 0 12px;background:#000}
+.entry{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:4;background:var(--card-art);border:1px solid var(--line);border-radius:18px;padding:10px;margin:8px 0 12px;box-shadow:var(--shadow)}
+.entry .cropimg{max-height:112px;object-fit:contain;margin:0 0 8px}
+.entry .rollers{margin:4px 0}
+.entry .msg{margin:4px 0 0;text-align:center;min-height:20px}
 .rollers{display:flex;gap:3px;justify-content:center;align-items:center;margin:12px 0}
 .rollers input{flex:1 1 0;min-width:0;max-width:46px;width:auto;height:62px;text-align:center;font:700 clamp(22px,7vw,30px) ui-rounded,system-ui,sans-serif;border-radius:10px;border:0;background:#F4F1EA;color:#10231F;padding:0}
 .rollers input.dd{background:#D93F36;color:#fff}
@@ -125,7 +129,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.1.5'};
+const APP={name:'Zählwerk',version:'0.1.7'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -280,7 +284,8 @@ const MEDIA={
  waerme:{label:'Wärme',unit:'kWh',col:'waerme',icon:'therm',pre:5,dec:2},
  sonst:{label:'Sonstiges',unit:'',col:'misc',icon:'gauge',pre:5,dec:0}
 };
-const COLS=['gas','strom','wasser','garten','waerme','cyan','sand','misc'];
+const COLS=['gas','strom','wasser','himmel','cyan','gruen','garten','waerme','sand','misc'];
+const COL_NAMES={gas:'Orange',strom:'Gelb',wasser:'Blau',himmel:'Hellblau',cyan:'Türkis',gruen:'Grün',garten:'Violett',waerme:'Pink',sand:'Sand',misc:'Grau'};
 const IC={
  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
  zap:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
@@ -520,9 +525,8 @@ function viewRead(){
  return '<section class="card"><h2>Zähler</h2><div class="chips">'+chips+'</div></section>'+
  '<section class="card"><h2>Foto</h2>'+(CR.src?photoEditor():photoPicker())+'</section>'+
  '<section class="card"><h2>Zählerstand</h2>'+
-  (CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+
   '<p class="mu sm">'+(last?'Vorbelegt mit dem letzten Stand ('+fmtValue(last.v,m.pre,m.dec)+' vom '+fmtDay(last.t)+'). Ändere nur die Stellen, die abweichen.':'Trage die Stellen so ein, wie sie auf dem Zähler stehen.')+'</p>'+
-  '<div class="rollers">'+rl+'</div>'+
+  '<div class="entry">'+(CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+'<div class="rollers">'+rl+'</div></div>'+
   '<label class="fld">Datum und Uhrzeit<input type="datetime-local" id="rdt" value="'+esc(R.dt)+'"></label>'+
   (R.photoNote?'<p class="mu sm">'+esc(R.photoNote)+'</p>':'')+
   '<details class="help"'+(R.helpOpen?' open':'')+'><summary>Optional: Erkannten Text einfügen</summary>'+
@@ -615,7 +619,7 @@ function viewSet(){
  '<p class="mu sm" style="text-align:center">'+APP.name+' '+APP.version+'</p>';
 }
 let EM=null;
-const swHtml=()=>COLS.map(c=>'<button class="sw" data-sw="'+c+'" aria-label="Farbe '+c+'" aria-pressed="'+(c===EM.col)+'" style="--mc:var(--c-'+c+')"></button>').join('');
+const swHtml=()=>COLS.map(c=>'<button class="sw" data-sw="'+c+'" aria-label="Farbe '+COL_NAMES[c]+'" aria-pressed="'+(c===EM.col)+'" style="--mc:var(--c-'+c+')"></button>').join('');
 async function editMeter(id){
  const m=meterById(id);if(!m)return;
  EM={col:m.col};
@@ -664,7 +668,7 @@ async function wipe(){
 function pickColor(medium){
  const used=S.meters.map(m=>m.col),pref=MEDIA[medium].col;
  if(!used.includes(pref))return pref;
- return COLS.find(c=>!used.includes(c))||pref;
+ return ['garten','himmel','cyan','gruen','waerme','sand','misc'].find(c=>!used.includes(c))||pref;
 }
 function uniqueName(base){
  if(!S.meters.some(m=>m.name===base))return base;
@@ -703,8 +707,9 @@ function viewSetup(){
  }
  if(W.step==='id'){
   const cands=W.nums.length?'<div class="chips">'+W.nums.map(c=>'<button class="chip" data-act="wNumPick" data-n="'+esc(c)+'">'+esc(c)+'</button>').join('')+'</div>':'';
-  return wBar()+'<section class="card"><h2>Name und Zählernummer</h2>'+
+  return wBar()+'<section class="card"><h2>Name, Farbe und Zählernummer</h2>'+
    '<label class="fld">Name<input id="wname" value="'+esc(W.name)+'" autocomplete="off"></label>'+
+   '<div class="fld" style="margin-bottom:0">Farbe</div><div class="swatches">'+COLS.map(c=>'<button class="sw" data-act="wColor" data-c="'+c+'" aria-label="Farbe '+COL_NAMES[c]+'" aria-pressed="'+(c===W.col)+'" style="--mc:var(--c-'+c+')"></button>').join('')+'</div>'+
    (W.medium==='sonst'?'<label class="fld">Einheit<input id="wunit" value="'+esc(W.unit)+'" autocomplete="off" placeholder="z. B. m³ oder kWh"></label>':'')+
    '<label class="fld">Zählernummer<input id="wnum" value="'+esc(W.number)+'" autocomplete="off" autocapitalize="characters"></label>'+
    '<p class="mu sm">Die Nummer steht auf dem Zähler und auf deiner Rechnung. Du tippst sie einmal ab. Sie hilft später, einen Zählerwechsel zu erkennen.</p>'+
@@ -714,11 +719,10 @@ function viewSetup(){
   return wBar()+'<section class="card"><h2>Foto vom Zähler</h2><p class="mu sm">Optional. Markiere einmal, wo der Zählerstand steht. Die App merkt sich den Ausschnitt für die nächsten Ablesungen.</p>'+(CR.src?photoEditor():photoPicker())+'</section>'+
    '<div class="row"><button class="btn sec" data-act="wBack">Zurück</button><button class="btn" style="flex:1" data-act="wNext">'+(CR.src?'Weiter':'Ohne Foto weiter')+'</button></div>';
  }
- return wBar()+'<section class="card"><h2>Erster Zählerstand</h2>'+(CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+
+ return wBar()+'<section class="card"><h2>Erster Zählerstand</h2>'+
   '<p class="mu sm">Lies die Anzeige so ab, wie sie auf dem Zähler steht: erst die schwarzen Ziffern, dann die roten. Ein Komma musst du nicht eintippen, es steht schon da.</p>'+
   stepper('pre','Ziffern vor dem Komma (schwarz)',W.pre)+stepper('dec','Ziffern nach dem Komma (rot)',W.dec)+
-  '<div class="rollers">'+rollerInputs(W.pre,W.dec,W.digits)+'</div>'+
-  '<div id="wsum" class="msg">'+esc(wSum())+'</div>'+
+  '<div class="entry">'+(CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+'<div class="rollers">'+rollerInputs(W.pre,W.dec,W.digits)+'</div><div id="wsum" class="msg">'+esc(wSum())+'</div></div>'+
   '<p class="mu sm">Die kleinen Zeigerräder zählen nicht, nur die Rollen mit Ziffern.</p>'+
   '<label class="fld">Stand vom<input type="datetime-local" id="wdt" value="'+esc(W.dt)+'"></label></section>'+
   '<div class="row"><button class="btn sec" data-act="wBack">Zurück</button><button class="btn" style="flex:1" data-act="wFinish">Zähler anlegen</button></div>';
@@ -772,6 +776,7 @@ const ACT={
  wCancel:()=>{crReset();W=null;go('home')},
  wNumPick:el=>{W.number=el.dataset.n;if($('#wnum'))$('#wnum').value=W.number;toast('Zählernummer übernommen.')},
  wFinish:()=>wFinish(),
+ wColor:el=>{wCollect();W.col=el.dataset.c;render()},
  wStep:el=>{const f=el.dataset.f,d=+el.dataset.d,op=W.pre,od=W.dec;let np=op,nd=od;if(f==='pre')np=Math.max(1,Math.min(10,op+d));else nd=Math.max(0,Math.min(5,od+d));W.digits=reshape(W.digits,op,od,np,nd);W.pre=np;W.dec=nd;render()}
 };
 document.addEventListener('click',e=>{
