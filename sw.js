@@ -1,6 +1,6 @@
 // Zählwerk – Service Worker: Die App-Dateien werden zwischengespeichert, damit sie ohne Internet starten.
-// Online wird zuerst das Netz gefragt, so kommen Updates automatisch an. Offline greift der Zwischenspeicher.
-const CACHE = 'zaehlwerk-v1';
+// Online wird zuerst der Server gefragt (ohne den Browser-Zwischenspeicher), so kommen Updates sofort an. Offline greift der Zwischenspeicher.
+const CACHE = 'zaehlwerk-v2';
 const FILES = [
   './',
   'index.html',
@@ -28,7 +28,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
   e.respondWith(
-    fetch(req)
+    fetch(req, { cache: 'no-cache' })
       .then(res => {
         if (res && res.ok) {
           const copy = res.clone();

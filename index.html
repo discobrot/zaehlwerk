@@ -57,6 +57,12 @@ p{margin:0 0 10px}
 .fld textarea{padding:10px 12px;min-height:80px}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:3px solid var(--pri);outline-offset:1px}
 .crop{width:100%;border-radius:14px;display:block;background:#000}
+.fld input[type=datetime-local]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;text-align:left;height:48px}
+.fld input[type=datetime-local]::-webkit-date-and-time-value{text-align:left;min-height:1.5em}
+body.kb #app{padding-bottom:calc(60vh + env(safe-area-inset-bottom))}
+#upd{position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--tx);color:var(--bg);padding:8px 8px 8px 14px;border-radius:14px;box-shadow:var(--shadow);font-weight:600}
+#upd[hidden]{display:none}
+#upd .btn{min-height:40px;background:var(--bg);color:var(--tx)}
 .cropimg{width:100%;display:block;border-radius:14px;margin:6px 0 12px;background:#000}
 .entry{position:sticky;top:calc(env(safe-area-inset-top,0px) + 6px);z-index:4;background:var(--card-art);border:1px solid var(--line);border-radius:18px;padding:10px;margin:8px 0 12px;box-shadow:var(--shadow)}
 .entry .cropimg{max-height:112px;object-fit:contain;margin:0 0 8px}
@@ -123,13 +129,14 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 </div></nav>
 <dialog id="dlg"></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
+<div id="upd" hidden><span>Neue Version bereit.</span><button class="btn sm" data-act="reload">Neu laden</button></div>
 <input id="fcam" type="file" accept="image/*" capture="environment" hidden>
 <input id="flib" type="file" accept="image/*" hidden>
 <input id="fimp" type="file" accept="application/json,.json" hidden>
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.1.7'};
+const APP={name:'Zählwerk',version:'0.1.8'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -776,6 +783,7 @@ const ACT={
  wCancel:()=>{crReset();W=null;go('home')},
  wNumPick:el=>{W.number=el.dataset.n;if($('#wnum'))$('#wnum').value=W.number;toast('Zählernummer übernommen.')},
  wFinish:()=>wFinish(),
+ reload:()=>location.reload(),
  wColor:el=>{wCollect();W.col=el.dataset.c;render()},
  wStep:el=>{const f=el.dataset.f,d=+el.dataset.d,op=W.pre,od=W.dec;let np=op,nd=od;if(f==='pre')np=Math.max(1,Math.min(10,op+d));else nd=Math.max(0,Math.min(5,od+d));W.digits=reshape(W.digits,op,od,np,nd);W.pre=np;W.dec=nd;render()}
 };
@@ -799,7 +807,18 @@ document.addEventListener('keydown',e=>{
  const t=e.target;
  if(t.matches&&t.matches('.rollers input')&&e.key==='Backspace'&&!t.value){const pv=t.parentElement.querySelector('input[data-i="'+(+t.dataset.i-1)+'"]');if(pv){pv.focus();pv.select()}}
 });
-document.addEventListener('focusin',e=>{if(e.target.matches&&e.target.matches('.rollers input'))e.target.select()});
+function alignEntry(){
+ const e=$('.entry');if(!e)return;
+ const safe=parseFloat(getComputedStyle(document.body).paddingTop)||0,want=safe+6,d=e.getBoundingClientRect().top-want;
+ if(Math.abs(d)>4)window.scrollBy({top:d,behavior:'auto'});
+}
+document.addEventListener('focusin',e=>{
+ if(e.target.matches&&e.target.matches('.rollers input')){
+  e.target.select();document.body.classList.add('kb');
+  setTimeout(alignEntry,60);setTimeout(alignEntry,380);
+ }
+});
+document.addEventListener('focusout',()=>{setTimeout(()=>{const a=document.activeElement;if(!a||!a.matches||!a.matches('.rollers input'))document.body.classList.remove('kb')},180)});
 document.addEventListener('paste',e=>{
  if(e.target.matches&&e.target.matches('.rollers input')){
   const txt=(e.clipboardData||window.clipboardData).getData('text');e.preventDefault();
@@ -816,7 +835,11 @@ window.addEventListener('resize',()=>{if(CR.src&&$('#crop')){crDraw()}});
 buildTabs();applyTheme();
 DB.open().then(()=>{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})});
 if(!S.meters.length)startSetup(true);else render();
-if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
+ const hadSW=!!navigator.serviceWorker.controller;
+ navigator.serviceWorker.addEventListener('controllerchange',()=>{if(hadSW)$('#upd').hidden=false});
+ navigator.serviceWorker.register('sw.js').then(r=>{if(r&&r.update)r.update()}).catch(()=>{});
+}
 </script>
 </body>
 </html>
