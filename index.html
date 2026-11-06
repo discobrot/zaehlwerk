@@ -113,6 +113,23 @@ ul.tips{margin:6px 0 8px;padding-left:20px}ul.tips li{margin:3px 0}
 .swatches{display:flex;gap:9px;flex-wrap:wrap;margin:5px 0 10px}
 .sw{width:38px;height:38px;border-radius:50%;border:3px solid transparent;background:var(--mc);cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
 .sw[aria-pressed=true]{border-color:var(--tx)}
+.picker{display:flex;gap:10px;flex-wrap:wrap}
+.pick{width:50px;height:50px;border-radius:50%;border:1px solid color-mix(in srgb,var(--mc) 40%,transparent);background:linear-gradient(160deg,color-mix(in srgb,var(--mc) 26%,transparent),color-mix(in srgb,var(--mc) 8%,transparent));color:var(--mc);display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 2px 8px rgba(0,0,0,.25);transition:transform .12s;padding:0}
+.pick .ic{width:23px;height:23px}
+.pick:active{transform:scale(.94)}
+.pick[aria-pressed=true]{border-color:var(--mc);background:linear-gradient(160deg,color-mix(in srgb,var(--mc) 52%,transparent),color-mix(in srgb,var(--mc) 20%,transparent));box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 0 0 2px color-mix(in srgb,var(--mc) 55%,transparent),0 4px 14px color-mix(in srgb,var(--mc) 35%,transparent)}
+.pname{margin:8px 2px 0;font-weight:650;font-size:14.5px}
+.stack{display:grid;gap:8px;margin:8px 0}.stack.two{grid-template-columns:1fr 1fr;margin:0}.stack.three{grid-template-columns:repeat(3,1fr)}.stack .btn{width:100%;padding:0 8px}
+dialog .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}dialog .row .btn{width:100%;padding:0 8px}
+.srow{display:flex;align-items:center;gap:12px;width:100%;background:transparent;border:0;border-top:1px solid var(--line);padding:11px 4px;color:var(--tx);text-align:left;font:inherit;cursor:pointer;min-height:58px}
+.srow:first-child{border-top:0}
+.si{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--glass);border:1px solid var(--line);color:var(--pri);flex:none}
+.sx{display:flex;flex-direction:column;flex:1;min-width:0}.sx b{font-size:15px}.sx span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sch{font-size:22px}
+.back{background:transparent;border:0;color:var(--pri);font:600 15px system-ui,sans-serif;padding:4px 0;min-height:36px;cursor:pointer;margin-bottom:2px}
+.fld.chk{flex-direction:row;align-items:center;gap:10px;font-size:14px;color:var(--tx)}
+.fld.chk input{width:22px;min-width:22px;min-height:22px;height:22px;padding:0}
+.wd{min-width:46px;justify-content:center;padding:0 10px}
+[hidden]{display:none!important}
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;background:var(--tabbg);border-top:1px solid var(--line);padding:4px 8px calc(4px + env(safe-area-inset-bottom));-webkit-backdrop-filter:blur(18px) saturate(1.3);backdrop-filter:blur(18px) saturate(1.3)}
 #tabs div{display:flex;width:100%;max-width:640px}
 #tabs button{flex:1;min-height:48px;border:0;background:transparent;color:var(--mu);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:600 11.5px system-ui,sans-serif;cursor:pointer;border-radius:12px}
@@ -143,7 +160,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.2.0'};
+const APP={name:'Zählwerk',version:'0.3.0'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -287,6 +304,51 @@ function reshape(ds,op,od,np,nd){
  const nd2=nd>=od?dp.concat(Array(nd-od).fill('')):dp.slice(0,nd);
  return ni.concat(nd2);
 }
+// ---- Erinnerungen ----
+const WD=['So','Mo','Di','Mi','Do','Fr','Sa'];
+function remMatches(r,d){
+ if(r.kind==='daily'){const st=new Date(r.start||0),a=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()),b=Date.UTC(st.getFullYear(),st.getMonth(),st.getDate()),diff=Math.round((a-b)/DAY);return diff>=0&&diff%(r.n||1)===0}
+ if(r.kind==='weekly')return (r.days||[]).includes(d.getDay());
+ if(r.kind==='monthly')return d.getDate()===Math.min(r.dom||1,28);
+ return false;
+}
+function remAt(r,d){const q=String(r.time||'18:00').split(':').map(Number);return new Date(d.getFullYear(),d.getMonth(),d.getDate(),q[0]||0,q[1]||0,0,0).getTime()}
+function nextOccurrence(r,after){const d0=new Date(after);for(let i=0;i<400;i++){const d=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+i);if(remMatches(r,d)){const t=remAt(r,d);if(t>after)return t}}return null}
+function lastOccurrence(r,before){const d0=new Date(before);for(let i=0;i<400;i++){const d=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()-i);if(remMatches(r,d)){const t=remAt(r,d);if(t<=before)return t}}return null}
+// Zähler, deren letzter Ablesetermin verpasst wurde (keine Ablesung seit Beginn des Tages des Termins)
+function dueIds(rems,meterIds,readings,now){
+ const due=new Set();
+ for(const r of rems||[]){
+  if(r.off)continue;const lo=lastOccurrence(r,now);if(!lo)continue;
+  const dayStart=new Date(lo);dayStart.setHours(0,0,0,0);
+  const ids=(r.m&&r.m.length)?r.m:meterIds;
+  for(const id of ids){let last=0;for(const x of readings)if(x.m===id&&x.t>last)last=x.t;if(last<dayStart.getTime())due.add(id)}
+ }
+ return due;
+}
+function remText(r){
+ const t=r.time||'18:00';
+ if(r.kind==='daily')return ((r.n||1)>1?'Alle '+r.n+' Tage':'Täglich')+' um '+t;
+ if(r.kind==='weekly')return 'Wöchentlich '+(r.days||[]).slice().sort((a,b)=>((a+6)%7)-((b+6)%7)).map(d=>WD[d]).join(', ')+' um '+t;
+ return 'Monatlich am '+Math.min(r.dom||1,28)+'. um '+t;
+}
+function icsDate(t){const d=new Date(t),z=n=>String(n).padStart(2,'0');return d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'T'+z(d.getHours())+z(d.getMinutes())+'00'}
+function buildIcs(rems,meters,now){
+ const ICS_DAY=['SU','MO','TU','WE','TH','FR','SA'];
+ const q=s=>String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+ const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Zählwerk//DE','CALSCALE:GREGORIAN'];
+ for(const r of rems){
+  if(r.off)continue;
+  const first=nextOccurrence(r,now);if(!first)continue;
+  if(r.kind==='weekly'&&!(r.days||[]).length)continue;
+  const ids=(r.m&&r.m.length)?r.m:meters.map(m=>m.id),names=ids.map(id=>(meters.find(m=>m.id===id)||{}).name).filter(Boolean).join(', ');
+  const rule=r.kind==='daily'?'FREQ=DAILY;INTERVAL='+(r.n||1):r.kind==='weekly'?'FREQ=WEEKLY;BYDAY='+r.days.map(d=>ICS_DAY[d]).join(','):'FREQ=MONTHLY;BYMONTHDAY='+Math.min(r.dom||1,28);
+  L.push('BEGIN:VEVENT','UID:'+r.id+'@zaehlwerk','DTSTAMP:'+new Date(now).toISOString().replace(/[-:]/g,'').replace(/\.\d+/,''),
+   'DTSTART:'+icsDate(first),'DTEND:'+icsDate(first+15*60000),'SUMMARY:'+q('Zähler ablesen: '+names),'RRULE:'+rule,
+   'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+q('Zähler ablesen: '+names),'TRIGGER:'+(r.lead?'-PT'+r.lead+'M':'PT0S'),'END:VALARM','END:VEVENT');
+ }
+ L.push('END:VCALENDAR');return L.join('\r\n');
+}
 // </logic>
 
 /* ---------- Konstanten ---------- */
@@ -306,6 +368,10 @@ const IC={
  sprout:'<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>',
  drop:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
  therm:'<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
+ bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+ sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+ db:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>',
+ info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
  gauge:'<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
  home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/>',
  cam:'<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
@@ -324,8 +390,8 @@ const TITLES={home:'Zählwerk',read:'Ablesen',hist:'Verlauf',set:'Einstellungen'
 
 /* ---------- Speicher ---------- */
 const KEY='zaehlwerk.v1';
-const blank=()=>({v:1,meters:[],readings:[],set:{theme:'dark',themeV:1}});
-function migrate(o){o.set=o.set||{};if(!o.set.themeV){o.set.theme='dark';o.set.themeV=1}if(!o.set.theme)o.set.theme='dark';return o}
+const blank=()=>({v:1,meters:[],readings:[],set:{theme:'dark',themeV:1},remind:[]});
+function migrate(o){if(!Array.isArray(o.remind))o.remind=[];o.set=o.set||{};if(!o.set.themeV){o.set.theme='dark';o.set.themeV=1}if(!o.set.theme)o.set.theme='dark';return o}
 function load(){
  try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&o.v&&Array.isArray(o.meters)&&Array.isArray(o.readings))return migrate(o)}catch(e){}
  return blank();
@@ -463,14 +529,26 @@ async function handlePhoto(file){
  }catch(e){toast('Foto ('+stage+'): '+(e.message||'Fehler'))}
  finally{if(url)URL.revokeObjectURL(url);busy(false)}
 }
+async function pastePhoto(){
+ try{
+  if(!(navigator.clipboard&&navigator.clipboard.read))throw new Error('Das Einfügen von Fotos wird hier nicht unterstützt.');
+  const items=await navigator.clipboard.read();
+  for(const it of items){
+   const type=it.types.find(t=>t.startsWith('image/'));
+   if(type){const blob=await it.getType(type);await handlePhoto(new File([blob],'zwischenablage.'+(type.split('/')[1]||'png'),{type}));return}
+  }
+  toast('In der Zwischenablage liegt kein Foto. Kopiere es zuerst in der Fotos-App.');
+ }catch(e){toast(e&&e.name==='NotAllowedError'?'Einfügen wurde nicht erlaubt.':(e.message||'Einfügen nicht möglich.'))}
+}
 function photoPicker(){
  return '<p class="mu sm">Das Foto bleibt auf deinem Gerät und dient der späteren Nachkontrolle.</p>'+
- '<div class="row"><button class="btn" data-act="camera">'+ico('cam')+' Foto aufnehmen</button><button class="btn sec" data-act="library">'+ico('img')+' Aus Fotos wählen</button></div>'+
+ '<div class="stack"><button class="btn" data-act="camera">'+ico('cam')+' Foto aufnehmen</button><div class="stack two"><button class="btn sec" data-act="library">'+ico('img')+' Aus Fotos</button><button class="btn sec" data-act="pastePhoto">'+ico('plus')+' Foto einfügen</button></div></div>'+
+ '<p class="mu sm">„Foto einfügen“: Foto in der Fotos-App lange drücken, Kopieren wählen und hier einfügen. Das hilft bei Fotos aus geteilten Alben.</p>'+
  '<details class="help"><summary>Tipps für ein gutes Foto</summary><ul class="tips"><li>Ohne Blitz fotografieren, er spiegelt auf der Scheibe.</li><li>Leicht schräg zur Scheibe halten, damit sich nichts spiegelt.</li><li>Möglichst gerade und so nah, dass die Ziffern groß im Bild sind.</li><li>Auf Schärfe achten, bei Bedarf kurz antippen.</li></ul></details>';
 }
 function photoEditor(){
  return '<canvas id="crop" class="crop" aria-label="Foto mit Auswahlrahmen"></canvas><p class="mu sm" style="margin-top:8px">Ziehe den Rahmen auf die Ziffern des Zählerstands. Die Ecken ändern die Größe.</p>'+
- '<div class="row"><button class="btn sec sm" data-act="rotate">'+ico('rot')+' Drehen</button><button class="btn sec sm" data-act="newPhoto">Anderes Foto</button><button class="btn ghost sm" data-act="dropPhoto">Entfernen</button></div>';
+ '<div class="stack three"><button class="btn sec sm" data-act="rotate">'+ico('rot')+' Drehen</button><button class="btn sec sm" data-act="newPhoto">Anderes Foto</button><button class="btn sec sm" data-act="dropPhoto">Entfernen</button></div>';
 }
 
 /* ---------- Zustand und Router ---------- */
@@ -502,9 +580,10 @@ function spark(vals){
  const pts=vals.map((v,i)=>(i*(w-4)/(vals.length-1)+2).toFixed(1)+','+(h-3-((v-mn)/rg)*(h-6)).toFixed(1)).join(' ');
  return '<svg class="spark" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="var(--mc)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 }
+let DUE=new Set();
 function tile(m){
  const rs=readingsOf(m.id),last=rs[rs.length-1],iv=intervalsOf(rs),li=iv[iv.length-1];
- const overdue=last&&Date.now()-last.t>32*DAY;
+ const overdue=(last&&Date.now()-last.t>32*DAY)||DUE.has(m.id);
  let info;
  if(!last)info='Noch keine Ablesung';
  else if(!li)info='Erster Stand gespeichert';
@@ -519,9 +598,10 @@ function tile(m){
 function viewHome(){
  if(!S.meters.length)return '<div class="card"><p>Noch kein Zähler angelegt.</p><button class="btn" data-act="addMeter">'+ico('plus')+' Zähler einrichten</button></div>';
  const now=Date.now();let h='';
- const due=S.meters.filter(m=>{const rs=readingsOf(m.id);return rs.length&&now-rs[rs.length-1].t>32*DAY});
+ DUE=dueIds(S.remind,S.meters.map(m=>m.id),S.readings,now);
+ const due=S.meters.filter(m=>{const rs=readingsOf(m.id);return DUE.has(m.id)||(rs.length&&now-rs[rs.length-1].t>32*DAY)});
  if(due.length)h+='<div class="banner">'+ico('warn')+'<div><b>Ablesung fällig:</b> '+due.map(m=>esc(m.name)).join(', ')+'</div></div>';
- if(S.readings.length>=4&&(!S.set.lastBackup||now-S.set.lastBackup>60*DAY))h+='<div class="banner">'+ico('warn')+'<div><b>Sicherung empfohlen.</b> <a href="#" data-act="go" data-v="set" style="color:var(--pri)">Jetzt sichern</a></div></div>';
+ if(S.readings.length>=4&&(!S.set.lastBackup||now-S.set.lastBackup>60*DAY))h+='<div class="banner">'+ico('warn')+'<div><b>Sicherung empfohlen.</b> <a href="#" data-act="goData" style="color:var(--pri)">Jetzt sichern</a></div></div>';
  h+=S.meters.map(tile).join('');
  h+='<button class="btn sec wide sm" data-act="addMeter">'+ico('plus')+' Zähler hinzufügen</button>';
  return h;
@@ -540,15 +620,17 @@ function rollerInputs(pre,dec,ds){
  }
  return h;
 }
+function pickRow(act,sel){
+ return '<div class="picker">'+S.meters.map(x=>'<button class="pick" data-act="'+act+'" data-id="'+x.id+'" aria-label="'+esc(x.name)+'" aria-pressed="'+(x.id===sel)+'" style="--mc:var(--c-'+x.col+')">'+ico(MEDIA[x.medium].icon)+'</button>').join('')+'</div>';
+}
 function viewRead(){
  if(!S.meters.length)return '<div class="card"><p>Lege zuerst einen Zähler an.</p><button class="btn" data-act="addMeter">Zähler einrichten</button></div>';
  if(!meterById(R.mid)){R.mid=S.meters[0].id;rDigits()}
  if(!R.digits.length)rDigits();
  if(!R.dt)R.dt=toLocalInput(Date.now());
  const m=curMeter(),rs=readingsOf(m.id),last=rs[rs.length-1],N=m.pre+m.dec;
- const chips=S.meters.map(x=>'<button class="chip" data-act="pickMeter" data-id="'+x.id+'" aria-pressed="'+(x.id===m.id)+'" style="--mc:var(--c-'+x.col+')"><span class="dot"></span>'+esc(x.name)+'</button>').join('');
  const rl=rollerInputs(m.pre,m.dec,R.digits);
- return '<section class="card"><h2>Zähler</h2><div class="chips">'+chips+'</div></section>'+
+ return '<section class="card">'+pickRow('pickMeter',m.id)+'<div class="pname">'+esc(m.name)+'</div></section>'+
  '<section class="card"><h2>Foto</h2>'+(CR.src?photoEditor():photoPicker())+'</section>'+
  '<section class="card"><h2>Zählerstand</h2>'+
   '<p class="mu sm">'+(last?'Vorbelegt mit dem letzten Stand ('+fmtValue(last.v,m.pre,m.dec)+' vom '+fmtDay(last.t)+'). Ändere nur die Stellen, die abweichen.':'Trage die Stellen so ein, wie sie auf dem Zähler stehen.')+'</p>'+
@@ -605,12 +687,11 @@ function viewHist(){
  if(!S.meters.length)return '<div class="card"><p>Noch keine Zähler.</p></div>';
  if(!meterById(H.mid))H.mid=S.meters[0].id;
  const m=meterById(H.mid),rs=readingsOf(m.id),iv=intervalsOf(rs),byB=new Map(iv.map(x=>[x.b.id,x]));
- const chips=S.meters.map(x=>'<button class="chip" data-act="pickHist" data-id="'+x.id+'" aria-pressed="'+(x.id===m.id)+'" style="--mc:var(--c-'+x.col+')"><span class="dot"></span>'+esc(x.name)+'</button>').join('');
  const rows=[...rs].reverse().map(r=>{
   const x=byB.get(r.id),d=x?'+'+nf(x.cons,cd(m))+' '+esc(m.unit)+' · '+Math.round(x.days)+' Tage'+(x.est?' (geschätzt)':''):'Erster Stand';
   return '<button class="item" data-act="editReading" data-id="'+r.id+'"><div><b class="mono">'+fmtValue(r.v,m.pre,m.dec)+'</b><div class="mu sm">'+fmtFull(r.t)+'</div></div><div class="mu sm right">'+d+(r.photo?' '+ico('photo','s'):'')+(r.w?' '+ico('swap','s'):'')+'</div></button>';
  }).join('');
- return '<section class="card"><div class="chips">'+chips+'</div></section><section class="card" style="padding:6px 14px">'+(rows||'<p class="mu" style="padding:10px 0">Noch keine Ablesungen.</p>')+'</section>';
+ return '<section class="card">'+pickRow('pickHist',m.id)+'<div class="pname">'+esc(m.name)+'</div></section><section class="card" style="padding:6px 14px">'+(rows||'<p class="mu" style="padding:10px 0">Noch keine Ablesungen.</p>')+'</section>';
 }
 async function editReading(id){
  const r=S.readings.find(x=>x.id===id);if(!r)return;const m=meterById(r.m);
@@ -634,28 +715,62 @@ async function editReading(id){
 }
 
 /* ---------- Einstellungen ---------- */
+let SETP='main';
+const srow=(p,icon,t,sub)=>'<button class="srow" data-act="setPage" data-p="'+p+'"><span class="si">'+ico(icon)+'</span><span class="sx"><b>'+t+'</b><span class="mu sm">'+sub+'</span></span><span class="mu sch" aria-hidden="true">›</span></button>';
+const backBar=t=>'<button class="back" data-act="setPage" data-p="main"><span aria-hidden="true">‹</span> Einstellungen</button><h2 class="sect">'+t+'</h2>';
 function viewSet(){
- const ml=S.meters.map(m=>'<button class="item" data-act="editMeter" data-id="'+m.id+'" style="--mc:var(--c-'+m.col+')"><span style="display:flex;align-items:center;gap:12px"><span class="mi">'+ico(MEDIA[m.medium].icon)+'</span><span><b>'+esc(m.name)+'</b><br><span class="mu sm">'+(m.number?'Nr. '+esc(m.number)+' · ':'')+m.pre+' Stellen vor, '+m.dec+' nach dem Komma</span></span></span><span class="mu">›</span></button>').join('');
- const th=S.set.theme;
- return '<section class="card" style="padding:6px 14px"><h2 style="padding-top:10px">Zähler</h2>'+(ml||'<p class="mu">Noch keine Zähler.</p>')+'<div style="padding:10px 0"><button class="btn sec wide" data-act="addMeter">'+ico('plus')+' Zähler hinzufügen</button></div></section>'+
- '<section class="card"><h2>Darstellung</h2><label class="fld">Farbmodus<select id="theme"><option value="dark"'+(th==='dark'?' selected':'')+'>Dunkel (Standard)</option><option value="light"'+(th==='light'?' selected':'')+'>Hell</option><option value="auto"'+(th==='auto'?' selected':'')+'>Wie das Telefon</option></select></label></section>'+
- '<section class="card"><h2>Daten</h2><p class="mu sm">Alle Daten liegen auf diesem Gerät. Fotos sind in der Sicherung nicht enthalten.'+(S.set.lastBackup?' Letzte Sicherung: '+fmtDay(S.set.lastBackup)+'.':' Es gibt noch keine Sicherung.')+'</p>'+
- '<div class="row"><button class="btn" data-act="exportData">Sicherung speichern</button><button class="btn sec" data-act="importData">Sicherung laden</button></div>'+
- '<div class="row"><button class="btn danger" data-act="wipe">Alle Daten löschen</button></div></section>'+
- '<p class="mu sm" style="text-align:center">'+APP.name+' '+APP.version+'</p>';
+ const th=S.set.theme,nrem=(S.remind||[]).filter(r=>!r.off).length;
+ if(SETP==='meters'){
+  const ml=S.meters.map(m=>'<button class="item" data-act="editMeter" data-id="'+m.id+'" style="--mc:var(--c-'+m.col+')"><span style="display:flex;align-items:center;gap:12px"><span class="mi">'+ico(MEDIA[m.medium].icon)+'</span><span><b>'+esc(m.name)+'</b><br><span class="mu sm">'+(m.number?'Nr. '+esc(m.number)+' · ':'')+m.pre+' Stellen vor, '+m.dec+' nach dem Komma</span></span></span><span class="mu">›</span></button>').join('');
+  return backBar('Zähler')+'<section class="card" style="padding:6px 14px">'+(ml||'<p class="mu" style="padding:10px 0">Noch keine Zähler.</p>')+'<div style="padding:8px 0 4px"><button class="btn sec wide" data-act="addMeter">'+ico('plus')+' Zähler hinzufügen</button></div></section>';
+ }
+ if(SETP==='remind'){
+  const rows=(S.remind||[]).map(r=>{
+   const ids=(r.m&&r.m.length)?r.m:S.meters.map(m=>m.id),nx=nextOccurrence(r,Date.now());
+   return '<button class="item" data-act="editRem" data-id="'+r.id+'"><span><b>'+esc(remText(r))+'</b><br><span class="mu sm">'+ids.map(id=>{const m=meterById(id);return m?esc(m.name):''}).filter(Boolean).join(', ')+(r.off?' · pausiert':(nx?' · nächster Termin '+fmtFull(nx):''))+'</span></span><span class="mu">›</span></button>';
+  }).join('');
+  return backBar('Erinnerungen')+'<section class="card" style="padding:6px 14px">'+(rows||'<p class="mu" style="padding:10px 0">Noch keine Erinnerung. Lege einen Ablesetermin fest, zum Beispiel jeden 19. um 18:00 Uhr.</p>')+'<div style="padding:8px 0 4px"><button class="btn wide" data-act="addRem">'+ico('plus')+' Erinnerung hinzufügen</button></div></section>'+
+   '<section class="card"><h2>Mitteilungen auf dem iPhone</h2><p class="mu sm">Die App zeigt fällige Ablesungen auf der Übersicht an. Damit dich dein iPhone zusätzlich per Mitteilung erinnert, kannst du den Zeitplan als Kalendertermin sichern. Mitteilungen direkt aus der App (Push) sind für später geplant, sie brauchen einen kleinen Zusatzdienst im Internet.</p><button class="btn sec wide" data-act="exportIcs">Als Kalendertermin sichern (.ics)</button></section>';
+ }
+ if(SETP==='look')return backBar('Darstellung')+'<section class="card"><label class="fld">Farbmodus<select id="theme"><option value="dark"'+(th==='dark'?' selected':'')+'>Dunkel (Standard)</option><option value="light"'+(th==='light'?' selected':'')+'>Hell</option><option value="auto"'+(th==='auto'?' selected':'')+'>Wie das Telefon</option></select></label></section>';
+ if(SETP==='data')return backBar('Daten und Sicherung')+'<section class="card"><p class="mu sm">Alle Daten liegen auf diesem Gerät. Fotos sind in der Sicherung nicht enthalten.'+(S.set.lastBackup?' Letzte Sicherung: '+fmtDay(S.set.lastBackup)+'.':' Es gibt noch keine Sicherung.')+'</p>'+
+  '<div class="stack two"><button class="btn" data-act="exportData">Sicherung speichern</button><button class="btn sec" data-act="importData">Sicherung laden</button></div></section>'+
+  '<section class="card"><h2>Alles zurücksetzen</h2><p class="mu sm">Entfernt Zähler, Ablesungen und Fotos von diesem Gerät.</p><button class="btn danger wide" data-act="wipe">Alle Daten löschen</button></section>';
+ if(SETP==='info')return backBar('Info')+'<section class="card"><p><b>'+APP.name+'</b> '+APP.version+'</p><p class="mu sm">Zählerstände erfassen, prüfen und auswerten. Die App arbeitet ohne Server, alle Daten bleiben auf deinem Gerät.</p></section>';
+ return '<section class="card" style="padding:4px 12px">'+
+  srow('meters','gauge','Zähler',S.meters.length?S.meters.map(m=>esc(m.name)).join(', '):'Noch keine')+
+  srow('remind','bell','Erinnerungen',nrem?nrem+(nrem===1?' Zeitplan aktiv':' Zeitpläne aktiv'):'Keine eingerichtet')+
+  srow('look','sun','Darstellung',th==='light'?'Hell':th==='auto'?'Wie das Telefon':'Dunkel')+
+  srow('data','db','Daten und Sicherung',S.set.lastBackup?'Letzte Sicherung '+fmtDay(S.set.lastBackup):'Noch keine Sicherung')+
+  srow('info','info','Info',APP.name+' '+APP.version)+'</section>';
 }
 let EM=null;
 const swHtml=()=>COLS.map(c=>'<button class="sw" data-sw="'+c+'" aria-label="Farbe '+COL_NAMES[c]+'" aria-pressed="'+(c===EM.col)+'" style="--mc:var(--c-'+c+')"></button>').join('');
+function emLive(){
+ const m=EM.m,same=EM.pre+EM.dec===m.pre+m.dec&&EM.pre!==m.pre;
+ $('#em-pre').textContent=EM.pre;$('#em-dec').textContent=EM.dec;
+ const re=$('#em-re');if(re){re.hidden=!same;if(!same)EM.reint=false;$('#em-reint').checked=EM.reint}
+ const rs=readingsOf(m.id),last=rs[rs.length-1];
+ $('#em-ex').textContent=last?'Der letzte Stand wird angezeigt als '+fmtValue(EM.reint?valueFromDigits(digitString(last.v,m.pre,m.dec),EM.pre,EM.dec):last.v,EM.pre,EM.dec)+(m.unit?' '+m.unit:'')+'.':'';
+}
 async function editMeter(id){
  const m=meterById(id);if(!m)return;
- EM={col:m.col};
- const res=await modal('<h3>Zähler bearbeiten</h3>'+
+ const minPre=Math.max(1,...readingsOf(m.id).map(r=>String(Math.floor(Math.abs(r.v))).length));
+ EM={m,col:m.col,pre:m.pre,dec:m.dec,reint:false,minPre};
+ const stp=(f,l,i)=>'<div class="stepper"><span>'+l+'</span><div><button class="btn sec sm" data-act="emStep" data-f="'+f+'" data-d="-1" aria-label="weniger">−</button><b id="'+i+'"></b><button class="btn sec sm" data-act="emStep" data-f="'+f+'" data-d="1" aria-label="mehr">+</button></div></div>';
+ const p=modal('<h3>Zähler bearbeiten</h3>'+
   '<label class="fld">Name<input id="em-n" value="'+esc(m.name)+'" autocomplete="off"></label>'+
   '<label class="fld">Zählernummer<input id="em-nr" value="'+esc(m.number||'')+'" autocomplete="off"></label>'+
   (m.medium==='sonst'?'<label class="fld">Einheit<input id="em-u" value="'+esc(m.unit)+'" autocomplete="off"></label>':'')+
-  '<div class="fld">Farbe</div><div class="swatches" id="em-sw">'+swHtml()+'</div>'+
-  '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Zähler löschen</button></div>',
-  (dd,v)=>({act:v,name:$('#em-n',dd).value.trim(),nr:$('#em-nr',dd).value.trim(),unit:$('#em-u',dd)?$('#em-u',dd).value.trim():null,col:EM.col}));
+  '<div class="fld" style="margin-bottom:0">Farbe</div><div class="swatches" id="em-sw">'+swHtml()+'</div>'+
+  '<div class="fld" style="margin-bottom:0">Anzeige des Zählers</div>'+
+  stp('pre','Ziffern vor dem Komma (schwarz)','em-pre')+stp('dec','Ziffern nach dem Komma (rot)','em-dec')+
+  '<label id="em-re" class="fld chk" hidden><input type="checkbox" id="em-reint"><span>Komma verschieben: vorhandene Ziffern neu deuten (nur bei gleicher Gesamtzahl der Stellen)</span></label>'+
+  '<p id="em-ex" class="mu sm"></p><p class="mu sm">Gespeicherte Werte bleiben genau erhalten. Es ändert sich nur, wie viele Nachkommastellen angezeigt und eingegeben werden.</p>'+
+  '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>',
+  (dd,v)=>({act:v,name:$('#em-n',dd).value.trim(),nr:$('#em-nr',dd).value.trim(),unit:$('#em-u',dd)?$('#em-u',dd).value.trim():null,col:EM.col,pre:EM.pre,dec:EM.dec,reint:EM.reint}));
+ emLive();
+ const res=await p;
  EM=null;
  if(!res||!res.act||res.act==='close')return;
  if(res.act==='del'){
@@ -663,10 +778,63 @@ async function editMeter(id){
   const a=await modal('<h3>Zähler löschen?</h3><p>„'+esc(m.name)+'“ und '+n+' Ablesung'+(n===1?'':'en')+' werden gelöscht. Das lässt sich nicht rückgängig machen.</p><div class="row"><button class="btn danger" data-val="yes">Löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
   if(a!=='yes')return;
   S.readings.filter(r=>r.m===m.id&&r.photo).forEach(r=>DB.del(r.photo));
-  S.readings=S.readings.filter(r=>r.m!==m.id);S.meters=S.meters.filter(x=>x.id!==m.id);save();render();return toast('Zähler gelöscht.');
+  S.readings=S.readings.filter(r=>r.m!==m.id);S.meters=S.meters.filter(x=>x.id!==m.id);
+  S.remind=(S.remind||[]).map(r=>({...r,m:(r.m||[]).filter(x=>x!==m.id)}));
+  save();render();return toast('Zähler gelöscht.');
  }
  if(!res.name)return toast('Der Name darf nicht leer sein.');
+ const op=m.pre,od=m.dec;
+ if(res.pre!==op||res.dec!==od){
+  if(res.reint&&res.pre+res.dec===op+od){
+   const re=v=>valueFromDigits(digitString(v,op,od),res.pre,res.dec);
+   S.readings.filter(r=>r.m===m.id).forEach(r=>{r.v=re(r.v);if(r.end!=null)r.end=re(r.end);if(r.start!=null)r.start=re(r.start)});
+  }
+  m.pre=res.pre;m.dec=res.dec;R.digits=[];
+ }
  m.name=res.name;m.number=res.nr;m.col=res.col;if(res.unit!==null)m.unit=res.unit;save();render();toast('Gespeichert.');
+}
+// ---------- Erinnerungen ----------
+let RM=null;
+const rmPick=()=>'<div class="picker">'+S.meters.map(x=>'<button class="pick" data-rm="'+x.id+'" aria-label="'+esc(x.name)+'" aria-pressed="'+RM.m.has(x.id)+'" style="--mc:var(--c-'+x.col+')">'+ico(MEDIA[x.medium].icon)+'</button>').join('')+'</div>';
+const rmDays=()=>'<div class="chips">'+[1,2,3,4,5,6,0].map(d=>'<button class="chip wd" data-wd="'+d+'" aria-pressed="'+RM.days.has(d)+'">'+WD[d]+'</button>').join('')+'</div>';
+function rmLive(){
+ const k=$('#rm-kind').value;
+ $('#rm-daily').hidden=k!=='daily';$('#rm-weekly').hidden=k!=='weekly';$('#rm-monthly').hidden=k!=='monthly';
+ $('#rm-pick').innerHTML=rmPick();$('#rm-days').innerHTML=rmDays();
+}
+async function editRem(id){
+ const ex=id?(S.remind||[]).find(r=>r.id===id):null;
+ RM={id:ex?ex.id:uid(),m:new Set(ex&&ex.m?ex.m:[]),days:new Set(ex&&ex.days?ex.days:[1,4])};
+ const v={kind:ex?ex.kind:'monthly',n:ex?ex.n||3:3,dom:ex?ex.dom||19:19,time:ex?ex.time||'18:00':'18:00',lead:ex?ex.lead||0:30,off:ex?!!ex.off:false};
+ const opt=(a,sel,fn)=>a.map(x=>'<option value="'+x+'"'+(x==sel?' selected':'')+'>'+fn(x)+'</option>').join('');
+ const p=modal('<h3>'+(ex?'Erinnerung bearbeiten':'Neue Erinnerung')+'</h3>'+
+  '<div class="fld" style="margin-bottom:6px">Für welche Zähler? Ohne Auswahl gilt sie für alle.</div><div id="rm-pick"></div>'+
+  '<label class="fld">Wiederholung<select id="rm-kind"><option value="daily"'+(v.kind==='daily'?' selected':'')+'>Täglich oder alle paar Tage</option><option value="weekly"'+(v.kind==='weekly'?' selected':'')+'>Wöchentlich an bestimmten Tagen</option><option value="monthly"'+(v.kind==='monthly'?' selected':'')+'>Monatlich an einem Tag</option></select></label>'+
+  '<label id="rm-daily" class="fld">Alle wie viele Tage?<input id="rm-n" type="number" inputmode="numeric" min="1" max="60" value="'+v.n+'"></label>'+
+  '<div id="rm-weekly"><div class="fld" style="margin-bottom:0">Wochentage</div><div id="rm-days"></div></div>'+
+  '<label id="rm-monthly" class="fld">Tag im Monat<select id="rm-dom">'+opt(Array.from({length:28},(_,i)=>i+1),v.dom,x=>x+'.')+'</select></label>'+
+  '<label class="fld">Uhrzeit<input id="rm-time" type="time" value="'+esc(v.time)+'"></label>'+
+  '<label class="fld">Erinnerung im Kalender vorher<select id="rm-lead">'+opt([0,15,30,60,120],v.lead,x=>x?x+' Minuten vorher':'Zur Uhrzeit')+'</select></label>'+
+  '<label class="fld chk"><input type="checkbox" id="rm-off"'+(v.off?' checked':'')+'><span>Pausiert</span></label>'+
+  '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button>'+(ex?'<button class="btn danger" data-val="del">Löschen</button>':'')+'</div>',
+  (d,act)=>({act,kind:$('#rm-kind',d).value,n:parseInt($('#rm-n',d).value,10)||1,dom:parseInt($('#rm-dom',d).value,10)||1,time:$('#rm-time',d).value||'18:00',lead:parseInt($('#rm-lead',d).value,10)||0,off:$('#rm-off',d).checked,m:[...RM.m],days:[...RM.days]}));
+ rmLive();
+ const res=await p;RM=null;
+ if(!res||!res.act||res.act==='close')return;
+ if(res.act==='del'){S.remind=(S.remind||[]).filter(r=>r.id!==id);save();render();return toast('Erinnerung gelöscht.')}
+ if(res.kind==='weekly'&&!res.days.length)return toast('Bitte mindestens einen Wochentag wählen.');
+ if(res.kind==='daily'&&(res.n<1||res.n>60))return toast('Bitte 1 bis 60 Tage eingeben.');
+ const rec={id:ex?ex.id:uid(),kind:res.kind,n:res.n,days:res.days,dom:res.dom,time:res.time,lead:res.lead,off:res.off,m:res.m,start:ex&&ex.start?ex.start:new Date(new Date().setHours(0,0,0,0)).getTime()};
+ const list=S.remind||[];const i=list.findIndex(r=>r.id===rec.id);if(i>=0)list[i]=rec;else list.push(rec);
+ S.remind=list;save();render();toast('Erinnerung gespeichert.');
+}
+function exportIcs(){
+ const rems=(S.remind||[]).filter(r=>!r.off);
+ if(!rems.length)return toast('Lege zuerst eine Erinnerung an.');
+ const blob=new Blob([buildIcs(rems,S.meters,Date.now())],{type:'text/calendar'}),a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download='zaehlwerk-erinnerungen.ics';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+ toast('Kalenderdatei wurde erstellt.');
 }
 function exportData(){
  const blob=new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),a=document.createElement('a');
@@ -776,13 +944,20 @@ async function wFinish(){
 
 /* ---------- Ereignisse ---------- */
 const ACT={
- go:el=>go(el.dataset.v),
+ go:el=>{if(el.dataset.v==='set')SETP='main';go(el.dataset.v)},
+ goData:()=>{SETP='data';go('set')},
+ setPage:el=>{SETP=el.dataset.p;render();window.scrollTo(0,0)},
+ emStep:el=>{if(!EM)return;const f=el.dataset.f,d=+el.dataset.d;if(f==='pre')EM.pre=Math.max(EM.reint?1:EM.minPre,Math.min(10,EM.pre+d));else EM.dec=Math.max(0,Math.min(5,EM.dec+d));emLive()},
+ addRem:()=>editRem(null),
+ editRem:el=>editRem(el.dataset.id),
+ exportIcs:()=>exportIcs(),
  addMeter:()=>startSetup(false),
  readMeter:el=>{R.mid=el.dataset.id;rDigits();R.dt='';R.photoNote='';go('read')},
  pickMeter:el=>{R.mid=el.dataset.id;rDigits();render()},
  pickHist:el=>{H.mid=el.dataset.id;render()},
  camera:()=>$('#fcam').click(),
  library:()=>$('#flib').click(),
+ pastePhoto:()=>pastePhoto(),
  rotate:()=>{if(!CR.src)return;crRotate();CR.rect={x:.1,y:.38,w:.8,h:.2};render()},
  newPhoto:()=>{crReset();render()},
  dropPhoto:()=>{crReset();R.photoNote='';render()},
@@ -807,10 +982,17 @@ const ACT={
  wStep:el=>{const f=el.dataset.f,d=+el.dataset.d,op=W.pre,od=W.dec;let np=op,nd=od;if(f==='pre')np=Math.max(1,Math.min(10,op+d));else nd=Math.max(0,Math.min(5,od+d));W.digits=reshape(W.digits,op,od,np,nd);W.pre=np;W.dec=nd;render()}
 };
 document.addEventListener('click',e=>{
+ const rmb=e.target.closest('[data-rm]'),wdb=e.target.closest('[data-wd]');
+ if(RM&&rmb){const k=rmb.dataset.rm;RM.m.has(k)?RM.m.delete(k):RM.m.add(k);rmLive();return}
+ if(RM&&wdb){const k=+wdb.dataset.wd;RM.days.has(k)?RM.days.delete(k):RM.days.add(k);rmLive();return}
  const sw=e.target.closest('[data-sw]');
  if(sw&&EM){EM.col=sw.dataset.sw;$('#em-sw').innerHTML=swHtml();return}
  const el=e.target.closest('[data-act]');
  if(el&&ACT[el.dataset.act]){e.preventDefault();ACT[el.dataset.act](el,e)}
+});
+document.addEventListener('change',e=>{
+ if(e.target.id==='rm-kind'&&RM)rmLive();
+ if(e.target.id==='em-reint'&&EM){EM.reint=e.target.checked;emLive()}
 });
 document.addEventListener('input',e=>{
  const t=e.target;
