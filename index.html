@@ -161,7 +161,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.3.2'};
+const APP={name:'Zählwerk',version:'0.3.3'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -365,47 +365,73 @@ function parseDeDate(x){
  return m?new Date(+m[1],m[2]-1,+m[3],+(m[4]||12),+(m[5]||0)).getTime():null;
 }
 function parseCsvReadings(text){
- const rows=[],bad=[];
+ const rows=[],bad=[];let col={n:0,d:1,s:2,nr:-1};
  String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).forEach((ln,i)=>{
   if(!ln.trim())return;
   const c=ln.split(/[;\t]/);
+  if(i===0&&/stand/i.test(ln)&&/datum/i.test(ln)){
+   const h=c.map(x=>x.trim().toLowerCase()),f=re=>h.findIndex(x=>re.test(x));
+   col={n:Math.max(0,f(/^z(ä|ae)hler$|^name$/)),d:f(/datum/),s:f(/^stand/),nr:f(/nummer|^nr/)};
+   if(col.d<0)col.d=1;if(col.s<0)col.s=2;
+   return;
+  }
   if(c.length<3){if(i>0)bad.push(i+1);return}
-  const t=parseDeDate(c[1]),v=parseDeNum(c[2]);
+  const t=parseDeDate(c[col.d]),v=parseDeNum(c[col.s]);
   if(t==null||v==null){if(i>0)bad.push(i+1);return}
-  rows.push({name:c[0].trim(),t,v});
+  const nr=col.nr>=0&&c[col.nr]?String(c[col.nr]).trim():'',name=String(c[col.n]).trim();
+  rows.push(nr?{name,t,v,nr}:{name,t,v});
  });
  return {rows,bad};
 }
 function mergeReadings(meters,readings,rows,newId){
- const added=[],dup=[],unknown=new Set();
+ const added=[],dup=[],unknown=new Set();let numbers=0;
  const find=n=>{const k=String(n).toLowerCase();return meters.find(m=>m.name.toLowerCase()===k)||meters.find(m=>(m.number||'').toLowerCase()===k)};
  for(const r of rows){
   const m=find(r.name);
   if(!m){unknown.add(r.name);continue}
-  if(readings.some(x=>x.m===m.id&&Math.abs(x.t-r.t)<600000)){dup.push(r);continue}
-  const nr={id:newId(),m:m.id,t:r.t,v:r.v};readings.push(nr);added.push(nr);
+  const ex=readings.find(x=>x.m===m.id&&Math.abs(x.t-r.t)<600000);
+  if(ex){dup.push(r);if(r.nr&&(!ex.nr||ex.nrAuto)){ex.nr=r.nr;delete ex.nrAuto;numbers++}continue}
+  const nr={id:newId(),m:m.id,t:r.t,v:r.v};if(r.nr)nr.nr=r.nr;
+  readings.push(nr);added.push(nr);
  }
- return {added,dup,unknown:[...unknown]};
+ return {added,dup,unknown:[...unknown],numbers};
 }
-// Fallende Stände als Zählerwechsel markieren, überholte Markierungen ohne Endstand entfernen
+// Zählerwechsel erkennen: fallender Stand oder geänderte Zählernummer; überholte Markierungen ohne Endstand entfernen
 function normalizeSwaps(meters,readings){
  let marked=0,cleared=0;
  for(const m of meters){
   const rs=readings.filter(r=>r.m===m.id).sort((a,b)=>a.t-b.t);
   rs.forEach((r,i)=>{
    const prev=rs[i-1];if(!prev)return;
-   if(r.w&&r.end==null&&r.v>=prev.v){delete r.w;delete r.start;cleared++}
-   else if(!r.w&&r.v<prev.v){r.w=1;r.start=0;marked++}
+   const numDiff=!!(prev.nr&&r.nr&&prev.nr!==r.nr&&!prev.nrAuto&&!r.nrAuto);
+   if(r.w&&r.end==null&&r.v>=prev.v&&!numDiff){delete r.w;delete r.start;cleared++}
+   else if(!r.w&&(r.v<prev.v||numDiff)){r.w=1;r.start=0;marked++}
   });
  }
  return {marked,cleared};
 }
+// Zählernummern: bekannte Nummern gelten rückwärts bis zum nächsten Zählerwechsel, die aktuelle Nummer des Zählers für den neuesten Abschnitt
+function fillNumbers(meters,readings){
+ let n=0;
+ for(const m of meters){
+  const rs=readings.filter(r=>r.m===m.id).sort((a,b)=>a.t-b.t);
+  rs.forEach(r=>{if(r.nrAuto){delete r.nr;delete r.nrAuto}});
+  let cur=m.number||null;
+  for(let i=rs.length-1;i>=0;i--){
+   const r=rs[i];
+   if(r.nr)cur=r.nr;
+   else if(cur){r.nr=cur;r.nrAuto=1;n++}
+   if(r.w)cur=null;
+  }
+ }
+ return n;
+}
 function buildCsv(meters,readings){
  const z=n=>String(n).padStart(2,'0'),fd=t=>{const d=new Date(t);return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes())};
- const L=['Zähler;Datum;Stand;Einheit;Verbrauch;Tage'];
+ const L=['Zähler;Datum;Stand;Zählernummer;Einheit;Verbrauch;Tage'];
  for(const m of meters){
   const rs=readings.filter(r=>r.m===m.id).sort((a,b)=>a.t-b.t),by=new Map(intervalsOf(rs).map(x=>[x.b.id,x]));
-  for(const r of rs){const x=by.get(r.id);L.push([m.name,fd(r.t),fmtValue(r.v,m.pre,m.dec),m.unit,x?String(+x.cons.toFixed(3)).replace('.',','):'',x?String(Math.round(x.days)):''].join(';'))}
+  for(const r of rs){const x=by.get(r.id);L.push([m.name,fd(r.t),fmtValue(r.v,m.pre,m.dec),r.nr||'',m.unit,x?String(+x.cons.toFixed(3)).replace('.',','):'',x?String(Math.round(x.days)):''].join(';'))}
  }
  return '\uFEFF'+L.join('\r\n');
 }
@@ -451,7 +477,7 @@ const TITLES={home:'Zählwerk',read:'Ablesen',hist:'Verlauf',set:'Einstellungen'
 /* ---------- Speicher ---------- */
 const KEY='zaehlwerk.v1';
 const blank=()=>({v:1,meters:[],readings:[],set:{theme:'dark',themeV:1},remind:[]});
-function migrate(o){if(!Array.isArray(o.remind))o.remind=[];o.set=o.set||{};if(!o.set.themeV){o.set.theme='dark';o.set.themeV=1}if(!o.set.theme)o.set.theme='dark';return o}
+function migrate(o){if(!Array.isArray(o.remind))o.remind=[];try{fillNumbers(o.meters,o.readings)}catch(e){}o.set=o.set||{};if(!o.set.themeV){o.set.theme='dark';o.set.themeV=1}if(!o.set.theme)o.set.theme='dark';return o}
 function load(){
  try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&o.v&&Array.isArray(o.meters)&&Array.isArray(o.readings))return migrate(o)}catch(e){}
  return blank();
@@ -711,7 +737,7 @@ async function saveReading(){
  if(ds.some(x=>x===''))return toast('Bitte alle Stellen ausfüllen.');
  const v=valueFromDigits(ds.join(''),m.pre,m.dec),t=new Date(R.dt).getTime();
  if(!isFinite(t))return toast('Bitte Datum und Uhrzeit prüfen.');
- const rs=readingsOf(m.id),warns=checkReading(rs,v,t,cd(m)),extra={};
+ const rs=readingsOf(m.id),warns=checkReading(rs,v,t,cd(m)),extra={};let oldNr=null;
  const list=warns.map(w=>'<li>'+esc(w.text)+'</li>').join('');
  if(warns.some(w=>w.k==='low')){
   const r=await modal('<h3>Niedrigerer Stand</h3><ul class="tips">'+list+'</ul><p>Mögliche Ursachen: Der Zähler wurde getauscht, oder die Stellen sind falsch eingetragen.</p>'+
@@ -721,14 +747,15 @@ async function saveReading(){
    '<div class="row"><button class="btn" data-val="swap">Ja, Zähler getauscht</button><button class="btn sec" data-val="fix">Nein, Stand korrigieren</button></div>',
    (d,v)=>({act:v,end:num($('#mw-end',d).value),start:num($('#mw-start',d).value),nr:$('#mw-nr',d).value.trim()}));
   if(!r||r.act!=='swap')return;
-  extra.w=1;if(r.end!=null)extra.end=r.end;extra.start=r.start||0;if(r.nr){extra.nr=r.nr;m.number=r.nr}
+  extra.w=1;if(r.end!=null)extra.end=r.end;extra.start=r.start||0;if(r.nr){extra.nr=r.nr;oldNr=m.number||null;m.number=r.nr}
  }else if(warns.length){
   const a=await modal('<h3>Bitte prüfen</h3><ul class="tips">'+list+'</ul><div class="row"><button class="btn" data-val="ok">Trotzdem speichern</button><button class="btn sec" data-val="back">Zurück</button></div>');
   if(a!=='ok')return;
  }
- const id=uid(),rd={id,m:m.id,t,v,...extra};
+ const id=uid(),rd={id,m:m.id,t,v,...(m.number?{nr:m.number}:{}),...extra};
+ if(oldNr){const pv=rs[rs.length-1];if(pv&&!pv.nr){pv.nr=oldNr}}
  if(CR.src){const blob=await crBlob();if(blob&&await DB.put(id,blob))rd.photo=id;m.crop={...CR.rect}}
- S.readings.push(rd);
+ S.readings.push(rd);fillNumbers(S.meters,S.readings);
  if(!save())return;
  R.dt='';R.scan='';R.scanMsg='';R.photoNote='';R.helpOpen=false;R.digits=[];crReset();
  toast('Ablesung gespeichert.');go('home');
@@ -748,8 +775,9 @@ function viewHist(){
  if(!meterById(H.mid))H.mid=S.meters[0].id;
  const m=meterById(H.mid),rs=readingsOf(m.id),iv=intervalsOf(rs),byB=new Map(iv.map(x=>[x.b.id,x]));
  const rows=[...rs].reverse().map(r=>{
+  const k=rs.indexOf(r),pv=rs[k-1],showNr=r.nr&&(!pv||pv.nr!==r.nr);
   const x=byB.get(r.id),d=x?'+'+nf(x.cons,cd(m))+' '+esc(m.unit)+' · '+Math.round(x.days)+' Tage'+(x.est?' (geschätzt)':''):'Erster Stand';
-  return '<button class="item" data-act="editReading" data-id="'+r.id+'"><div><b class="mono">'+fmtValue(r.v,m.pre,m.dec)+'</b><div class="mu sm">'+fmtFull(r.t)+'</div></div><div class="mu sm right">'+d+(r.photo?' '+ico('photo','s'):'')+(r.w?' '+ico('swap','s'):'')+'</div></button>';
+  return '<button class="item" data-act="editReading" data-id="'+r.id+'"><div><b class="mono">'+fmtValue(r.v,m.pre,m.dec)+'</b><div class="mu sm">'+fmtFull(r.t)+(showNr?' · Nr. '+esc(r.nr):'')+'</div></div><div class="mu sm right">'+d+(r.photo?' '+ico('photo','s'):'')+(r.w?' '+ico('swap','s'):'')+'</div></button>';
  }).join('');
  return '<section class="card">'+pickRow('pickHist',m.id)+'<div class="pname">'+esc(m.name)+'</div></section><section class="card" style="padding:6px 14px">'+(rows||'<p class="mu" style="padding:10px 0">Noch keine Ablesungen.</p>')+'</section>';
 }
@@ -760,9 +788,10 @@ async function editReading(id){
  const res=await modal('<h3>'+esc(m.name)+'</h3>'+img+
   '<label class="fld">Datum und Uhrzeit<input type="datetime-local" id="ed-t" value="'+toLocalInput(r.t)+'"></label>'+
   '<label class="fld">Zählerstand<input id="ed-v" inputmode="decimal" value="'+fmtValue(r.v,m.pre,m.dec)+'"></label>'+
+  '<label class="fld">Zählernummer<input id="ed-nr" autocomplete="off" value="'+esc(r.nr||'')+'"></label>'+
   (r.w?'<div class="fld" style="margin-bottom:2px"><b>Zählerwechsel</b></div><p class="mu sm">Trage den Endstand des alten Zählers ein, wenn du ihn kennst (zum Beispiel aus der Abrechnung). Ohne Endstand wird der Verbrauch dieses Zeitraums geschätzt.</p><label class="fld">Endstand des alten Zählers<input id="ed-end" inputmode="decimal" placeholder="unbekannt" value="'+(r.end!=null?fmtValue(r.end,m.pre,m.dec):'')+'"></label><label class="fld">Anfangsstand des neuen Zählers<input id="ed-start" inputmode="decimal" value="'+fmtValue(r.start||0,m.pre,m.dec)+'"></label>':'')+
   '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>',
-  (d,v)=>({act:v,t:$('#ed-t',d).value,val:$('#ed-v',d).value,end:$('#ed-end',d)?$('#ed-end',d).value:null,start:$('#ed-start',d)?$('#ed-start',d).value:null}));
+  (d,v)=>({act:v,t:$('#ed-t',d).value,val:$('#ed-v',d).value,nr:$('#ed-nr',d).value.trim(),end:$('#ed-end',d)?$('#ed-end',d).value:null,start:$('#ed-start',d)?$('#ed-start',d).value:null}));
  if(!res||!res.act||res.act==='close')return;
  if(res.act==='del'){
   const a=await modal('<h3>Ablesung löschen?</h3><p>Dieser Vorgang lässt sich nicht rückgängig machen.</p><div class="row"><button class="btn danger" data-val="yes">Löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
@@ -778,7 +807,9 @@ async function editReading(id){
   if(e==null)delete r.end;else r.end=e;
   r.start=st;
  }
- r.v=p.value;r.t=t;save();render();toast('Gespeichert.');
+ r.v=p.value;r.t=t;
+ if(res.nr!==(r.nr||'')){if(res.nr){r.nr=res.nr;delete r.nrAuto}else{delete r.nr;delete r.nrAuto}}
+ fillNumbers(S.meters,S.readings);save();render();toast('Gespeichert.');
 }
 
 /* ---------- Einstellungen ---------- */
@@ -802,7 +833,7 @@ function viewSet(){
  if(SETP==='look')return backBar('Darstellung')+'<section class="card"><label class="fld">Farbmodus<select id="theme"><option value="dark"'+(th==='dark'?' selected':'')+'>Dunkel (Standard)</option><option value="light"'+(th==='light'?' selected':'')+'>Hell</option><option value="auto"'+(th==='auto'?' selected':'')+'>Wie das Telefon</option></select></label></section>';
  if(SETP==='data')return backBar('Daten und Sicherung')+'<section class="card"><p class="mu sm">Alle Daten liegen auf diesem Gerät. Fotos sind in der Sicherung nicht enthalten.'+(S.set.lastBackup?' Letzte Sicherung: '+fmtDay(S.set.lastBackup)+'.':' Es gibt noch keine Sicherung.')+'</p>'+
   '<div class="stack two"><button class="btn" data-act="exportData">Sicherung speichern</button><button class="btn sec" data-act="importData">Sicherung laden</button></div></section>'+
-  '<section class="card"><h2>Ablesungen als Tabelle (CSV)</h2><p class="mu sm">Der Import fügt neue Ablesungen hinzu und lässt vorhandene unverändert. Die Spalten heißen Zähler, Datum und Stand, zum Beispiel „Gas;19.11.2026 18:00;1850,123“.</p><div class="stack two"><button class="btn sec" data-act="importCsv">CSV importieren</button><button class="btn sec" data-act="exportCsv">CSV exportieren</button></div></section>'+
+  '<section class="card"><h2>Ablesungen als Tabelle (CSV)</h2><p class="mu sm">Der Import fügt neue Ablesungen hinzu und lässt vorhandene unverändert. Die Spalten heißen Zähler, Datum und Stand, auf Wunsch zusätzlich Zählernummer, zum Beispiel „Gas;19.11.2026 18:00;1850,123;10146039“.</p><div class="stack two"><button class="btn sec" data-act="importCsv">CSV importieren</button><button class="btn sec" data-act="exportCsv">CSV exportieren</button></div></section>'+
   '<section class="card"><h2>Alles zurücksetzen</h2><p class="mu sm">Entfernt Zähler, Ablesungen und Fotos von diesem Gerät.</p><button class="btn danger wide" data-act="wipe">Alle Daten löschen</button></section>';
  if(SETP==='info')return backBar('Info')+'<section class="card"><p><b>'+APP.name+'</b> '+APP.version+'</p><p class="mu sm">Zählerstände erfassen, prüfen und auswerten. Die App arbeitet ohne Server, alle Daten bleiben auf deinem Gerät.</p></section>';
  return '<section class="card" style="padding:4px 12px">'+
@@ -924,10 +955,11 @@ async function importCsvText(text){
  const {rows,bad}=parseCsvReadings(text);
  if(!rows.length){await modal('<h3>Keine Ablesungen gefunden</h3><p>Die Datei braucht die Spalten Zähler, Datum und Stand, getrennt durch Semikolon.</p><div class="row"><button class="btn" data-val="ok">Schließen</button></div>');return}
  const res=mergeReadings(S.meters,S.readings,rows,uid),sw=normalizeSwaps(S.meters,S.readings);
- if(res.added.length||sw.marked||sw.cleared)save();
+ fillNumbers(S.meters,S.readings);
+ if(res.added.length||sw.marked||sw.cleared||res.numbers)save();
  R.digits=[];render();
  const li=a=>a.length?'<li>'+a.join('</li><li>')+'</li>':'';
- await modal('<h3>Import abgeschlossen</h3><ul class="tips"><li><b>'+res.added.length+'</b> neue Ablesung'+(res.added.length===1?'':'en')+' hinzugefügt</li>'+(res.dup.length?'<li>'+res.dup.length+' waren schon vorhanden und blieben unverändert</li>':'')+(sw.marked?'<li>'+sw.marked+' Zählerwechsel erkannt (Stand fällt)</li>':'')+(sw.cleared?'<li>'+sw.cleared+' Zählerwechsel-Markierung'+(sw.cleared===1?'':'en')+' entfernt (Stand passt jetzt zur Vorgängerablesung)</li>':'')+(bad.length?'<li>'+bad.length+' Zeile'+(bad.length===1?'':'n')+' nicht lesbar</li>':'')+'</ul>'+(res.unknown.length?'<p class="msg bad">Unbekannte Zähler, bitte Namen prüfen:</p><ul class="tips">'+li(res.unknown.map(esc))+'</ul>':'')+'<div class="row"><button class="btn" data-val="ok">Schließen</button></div>');
+ await modal('<h3>Import abgeschlossen</h3><ul class="tips"><li><b>'+res.added.length+'</b> neue Ablesung'+(res.added.length===1?'':'en')+' hinzugefügt</li>'+(res.dup.length?'<li>'+res.dup.length+' waren schon vorhanden und blieben unverändert</li>':'')+(res.numbers?'<li>Zählernummer bei '+res.numbers+' vorhandenen Ablesungen ergänzt</li>':'')+(sw.marked?'<li>'+sw.marked+' Zählerwechsel erkannt (Stand fällt oder Zählernummer ändert sich)</li>':'')+(sw.cleared?'<li>'+sw.cleared+' Zählerwechsel-Markierung'+(sw.cleared===1?'':'en')+' entfernt (Stand passt jetzt zur Vorgängerablesung)</li>':'')+(bad.length?'<li>'+bad.length+' Zeile'+(bad.length===1?'':'n')+' nicht lesbar</li>':'')+'</ul>'+(res.unknown.length?'<p class="msg bad">Unbekannte Zähler, bitte Namen prüfen:</p><ul class="tips">'+li(res.unknown.map(esc))+'</ul>':'')+'<div class="row"><button class="btn" data-val="ok">Schließen</button></div>');
  return res;
 }
 async function importCsv(f){if(!f)return;try{await importCsvText(await f.text())}catch(e){toast(e.message||'Die Datei ist nicht lesbar.')}}
