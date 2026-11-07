@@ -220,6 +220,8 @@ details.bf[open]{padding-bottom:10px}
 .bgrid input,.bgrid3 input{min-height:40px;font-size:16px}
 .bper{border-top:1px dashed var(--line);padding-top:6px;margin-top:4px}
 tr.click{cursor:pointer}tr.click:active td{background:var(--glass)}
+.kpay{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;margin:0 0 8px;border-radius:12px;border:1px solid color-mix(in srgb,var(--pri) 45%,transparent);background:color-mix(in srgb,var(--pri) 8%,transparent);color:var(--tx);font:inherit;cursor:pointer;text-align:left}
+.kpay>span:first-child{display:flex;flex-direction:column}.kpay b{font-size:19px;font-variant-numeric:tabular-nums}.kpay .right{text-align:right}
 </style>
 </head>
 <body>
@@ -243,7 +245,7 @@ tr.click{cursor:pointer}tr.click:active td{background:var(--glass)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.7.0'};
+const APP={name:'Zählwerk',version:'0.7.1'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -1476,14 +1478,26 @@ function viewCost(){
  // Prognose
  const fy=new Date().getFullYear(),i1=inv.filter(x=>x.year===fy-1&&x.next).pop(),i2=inv.filter(x=>x.year===fy-2&&x.next).pop();
  if(i1){
+  const keys=MED.map(x=>x[0]),plan=i1.next,planJan=(i2&&i2.next)||plan;
+  const sum=o=>keys.reduce((a,k)=>a+(o[k]||0),0),pT=sum(plan),pJ=sum(planJan);
+  const own=(B.pay||{})[fy],fromM=own?own.from:1;
+  // Zahlungen je Monat (Januar nach altem Plan, ab Februar neuer Plan, ab gewähltem Monat dein Betrag), anteilig nach Plan verteilt
+  const paid={};keys.forEach(k=>paid[k]=0);
+  for(let mo=0;mo<12;mo++){
+   const base=mo===0?planJan:plan,bt=mo===0?pJ:pT,tot=own&&mo>=fromM?own.amt:bt;
+   keys.forEach(k=>{paid[k]+=bt>0?tot*(base[k]||0)/bt:0});
+  }
   let rows='',tc=0,ta=0,real=12;
   MED.forEach(([k,lab,col])=>{if(!ctx.Q[k]||!ctx.T[k].length)return;const f=forecastYear(ctx.Q[k],ctx.T[k],fy);if(!f.ok)return;real=Math.min(real,f.actual);
-   const ab=(i1.next[k]||0)*11+((i2&&i2.next&&i2.next[k])||i1.next[k]||0),d=ab-f.cost,sug=Math.ceil((f.cost-((i2&&i2.next&&i2.next[k])||i1.next[k]||0))/11);tc+=f.cost;ta+=ab;
-   rows+='<tr><td><span class="yd" style="--mc:'+col+'"></span>'+lab+'</td><td>'+eur0(f.cost)+'</td><td>'+eur0(ab)+'</td><td class="'+(d>=0?'pos':'neg')+'">'+(d>=0?'+':'−')+eur0(Math.abs(d))+'</td><td>'+eur0(sug)+'</td></tr>'});
-  const d=ta-tc;
+   const ab=paid[k],d=ab-f.cost;tc+=f.cost;ta+=ab;
+   rows+='<tr><td><span class="yd" style="--mc:'+col+'"></span>'+lab+'</td><td>'+eur0(f.cost)+'</td><td>'+eur0(ab)+'</td><td class="'+(d>=0?'pos':'neg')+'">'+(d>=0?'+':'−')+eur0(Math.abs(d))+'</td></tr>'});
+  const d=ta-tc,janPaid=pJ,sug=Math.ceil((tc-janPaid)/11);
   h+='<section class="card"><h2>Prognose '+fy+'</h2><div class="kres '+(d>=0?'pos':'neg')+'"><span>'+(d>=0?'Voraussichtlich Guthaben':'Voraussichtlich Nachzahlung')+'</span><b>'+eur0(Math.abs(d))+'</b></div>'+
-   '<div class="tscroll"><table class="kpi"><tr><th>Medium</th><th>Kosten</th><th>Abschläge</th><th>Ergebnis</th><th>Passend</th></tr>'+rows+'<tr class="tot"><td>Gesamt</td><td>'+eur0(tc)+'</td><td>'+eur0(ta)+'</td><td class="'+(d>=0?'pos':'neg')+'">'+(d>=0?'+':'−')+eur0(Math.abs(d))+'</td><td></td></tr></table></div>'+
-   '<details class="fold"><summary>Worauf die Prognose beruht</summary><p><b>Verbrauch</b>: '+(real?real+' Monate aus deinen Ablesungen, die übrigen':'alle Monate')+' als Mittel derselben Monate der letzten drei Jahre.</p><p><b>Preise</b>: aus der letzten Rechnung'+(ctx.T.wasser.some(x=>x.est&&x.ft>=new Date(fy,0,1).getTime())?', Wasser mit dem angekündigten Preis ab Januar':'')+'. Ändern sich Preise, ändert sich die Prognose.</p><p><b>Abschläge</b>: Januar zum alten Betrag, Februar bis Dezember zum neuen laut Rechnung '+i1.year+'.</p><p><b>Passend</b>: der Monatsabschlag ab Februar, mit dem es ungefähr aufgeht.</p></details></section>';
+   '<button class="kpay" data-act="editPay"><span><span class="mu sm">Dein Abschlag im Monat</span><b>'+eur0(own?own.amt:pT)+'</b></span><span class="mu sm right">'+(own?'ab '+MONF[fromM]+', laut Stadtwerke '+eur0(pT):'laut Stadtwerke')+'<br><span style="color:var(--pri)">Ändern ›</span></span></button>'+
+   '<div class="tscroll"><table class="kpi"><tr><th>Medium</th><th>Kosten</th><th>Abschläge</th><th>Ergebnis</th></tr>'+rows+'<tr class="tot"><td>Gesamt</td><td>'+eur0(tc)+'</td><td>'+eur0(ta)+'</td><td class="'+(d>=0?'pos':'neg')+'">'+(d>=0?'+':'−')+eur0(Math.abs(d))+'</td></tr></table></div>'+
+   '<p class="mu sm" style="margin:8px 2px 0">Mit etwa <b style="color:var(--tx)">'+eur0(sug)+'</b> im Monat ab Februar ginge das Jahr ungefähr auf.</p>'+
+   '<details class="fold"><summary>Worauf die Prognose beruht</summary><p><b>Verbrauch</b>: '+(real?real+' Monate aus deinen Ablesungen, die übrigen':'alle Monate')+' als Mittel derselben Monate der letzten drei Jahre.</p><p><b>Preise</b>: aus der letzten Rechnung'+(ctx.T.wasser.some(x=>x.est&&x.ft>=new Date(fy,0,1).getTime())?', Wasser mit dem angekündigten Preis ab Januar':'')+'. Ändern sich Preise, ändert sich die Prognose.</p>'+
+   '<p><b>Abschläge</b>: Januar zum alten Betrag ('+eur0(pJ)+'), danach '+(own?'bis '+MONF[Math.max(0,fromM-1)]+' laut Rechnung '+i1.year+', ab '+MONF[fromM]+' dein Betrag':'laut Rechnung '+i1.year)+'. Gezahlt wird ein Gesamtbetrag. Für die Aufteilung auf Strom, Gas, Wasser und Abwasser nutzt die App das Verhältnis aus dem Abschlagsplan der Stadtwerke.</p></details></section>';
  }
  // Jahresüberblick
  const yr=inv.map(x=>{const ks=MED.map(([k])=>x.m[k]||{});const cost=ks.reduce((a,b)=>a+(b.gross||0),0)+Object.values(x.credit||{}).reduce((a,b)=>a+b,0),paid=ks.reduce((a,b)=>a+(b.paid||0),0);
@@ -1625,6 +1639,20 @@ async function billForm(p,fromPdf,editing){
   fillNumbers(S.meters,S.readings);save();anaInit();A.view='cost';K.year=I.year;K.sel=null;go('ana');
   return toast('Rechnung '+I.year+' gespeichert'+(r.added.length?', '+r.added.length+(r.added.length===1?' Stand':' Stände')+' ergänzt':'')+'.');
  }
+}
+async function editPay(){
+ const fy=new Date().getFullYear(),B=S.bills,i1=B&&B.invoices.filter(x=>x.year===fy-1&&x.next).pop();if(!i1)return;
+ const pT=Object.values(i1.next).reduce((a,b)=>a+(b||0),0),own=(B.pay||{})[fy];
+ const r=await modal('<h3>Dein Abschlag '+fy+'</h3><p class="mu sm">Trage den Gesamtbetrag ein, den du im Monat an die Stadtwerke überweist, für Strom, Gas, Wasser und Abwasser zusammen. Laut Rechnung '+i1.year+' sind es '+eur(pT)+'.</p>'+
+  '<div class="stack two"><label class="fld">Betrag im Monat (€)<input id="pa" inputmode="decimal" value="'+esc(own?fin(own.amt):'')+'" placeholder="'+esc(fin(pT))+'"></label><label class="fld">gilt ab<select id="pf">'+MONF.map((m,i)=>'<option value="'+i+'"'+((own?own.from:1)===i?' selected':'')+'>'+m+'</option>').join('')+'</select></label></div>'+
+  '<p class="mu sm">Die Aufteilung auf die einzelnen Zähler übernimmt die App im Verhältnis des Abschlagsplans der Stadtwerke.</p>'+
+  '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Abbrechen</button>'+(own?'<button class="btn sec" data-val="reset">Plan verwenden</button>':'')+'</div>',
+  (d,v)=>({v,amt:parseDeNum($('#pa',d).value),from:+$('#pf',d).value}));
+ if(!r||!r.v||r.v==='close')return;
+ B.pay=B.pay||{};
+ if(r.v==='reset'){delete B.pay[fy];save();render();return toast('Abschlag laut Stadtwerke.')}
+ if(r.amt==null||!(r.amt>0)||r.amt>5000)return toast('Bitte einen Betrag eintragen.');
+ B.pay[fy]={amt:+r.amt.toFixed(2),from:r.from};save();render();toast('Abschlag gespeichert.');
 }
 async function billRow(year){
  const x=S.bills&&S.bills.invoices.find(i=>i.year===year);if(!x)return;
@@ -1988,6 +2016,7 @@ const ACT={
  addBill:()=>$('#fpdf').click(),
  addBillMan:()=>billForm(blankBill(),false),
  billRow:el=>billRow(+el.dataset.y),
+ editPay:()=>editPay(),
  dropBills:async()=>{const a=await modal('<h3>Rechnungsdaten entfernen?</h3><p>Preise und Rechnungen werden aus der App entfernt. Ergänzte Zählerstände, Endstände und die Gas-Umrechnung bleiben erhalten.</p><div class="row"><button class="btn danger" data-val="yes">Entfernen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');if(a!=='yes')return;S.bills=null;save();render();toast('Rechnungsdaten entfernt.')},
  addHome:()=>addHome(),
  editHome:el=>editHome(el.dataset.id),
@@ -2043,7 +2072,7 @@ document.addEventListener('click',e=>{
  const el=e.target.closest('[data-act]');
  if(el&&ACT[el.dataset.act]){e.preventDefault();if(RO_ACTS.has(el.dataset.act)&&roBlock())return;ACT[el.dataset.act](el,e)}
 });
-const RO_ACTS=new Set(['addBill','addBillMan','importBills','dropBills','addMeter','saveReading','importCsv','wipeReadings','delYear','delMonth','addRem','editRem','camera','library','pastePhoto','anaConv','editMeter','exportIcs']);
+const RO_ACTS=new Set(['editPay','addBill','addBillMan','importBills','dropBills','addMeter','saveReading','importCsv','wipeReadings','delYear','delMonth','addRem','editRem','camera','library','pastePhoto','anaConv','editMeter','exportIcs']);
 document.addEventListener('toggle',e=>{const t=e.target;if(t.matches&&t.matches('details.yr')&&H.open){const y=+t.dataset.y;t.open?H.open.add(y):H.open.delete(y)}},true);
 document.addEventListener('change',e=>{
  if(e.target.id==='rm-kind'&&RM)rmLive();
