@@ -203,6 +203,15 @@ details.yr .chev{border-color:var(--mu)}details.yr[open] .chev{transform:rotate(
 .hgap{display:flex;justify-content:space-between;margin:6px 0;padding:6px 10px;border:1px dashed color-mix(in srgb,var(--warn) 50%,transparent);border-radius:10px;font-size:12.5px;color:var(--mu)}
 .hgap span:last-child,.gapn{color:var(--warn)}
 .ydel{width:100%;color:var(--bad);margin-top:6px}
+.vsw{margin:0 0 10px}.vsw .seg,.seg.full{display:flex;width:100%}.vsw .seg button,.seg.full button{flex:1}
+.ychips{margin:6px 0 2px}
+.ksum{display:flex;gap:8px;margin:8px 0 6px}.ksum div{flex:1;background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:7px 12px;display:flex;flex-direction:column}
+.ksum b{font-size:19px;font-variant-numeric:tabular-nums}
+.kmed{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--mu);margin:2px 2px 4px}.kmed span{display:inline-flex;align-items:center}.kmed b{color:var(--tx);margin-left:4px;font-variant-numeric:tabular-nums}
+.pos{color:var(--pri)!important}.neg{color:var(--warn)!important}
+table.kpi tr.tot td{font-weight:700}
+.kres{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:12px;margin:2px 0 8px;border:1px solid var(--line);background:var(--glass)}
+.kres b{font-size:21px;font-variant-numeric:tabular-nums}.kres.pos b{color:var(--pri)}.kres.neg b{color:var(--warn)}.kres span{color:var(--mu);font-size:13.5px}
 </style>
 </head>
 <body>
@@ -220,11 +229,12 @@ details.yr .chev{border-color:var(--mu)}details.yr[open] .chev{transform:rotate(
 <input id="fcam" type="file" accept="image/*" capture="environment" hidden>
 <input id="flib" type="file" accept="image/*" hidden>
 <input id="fimp" type="file" accept="application/json,.json" hidden>
+<input id="fbill" type="file" accept="application/json,.json" hidden>
 <input id="fcsv" type="file" accept=".csv,.txt,text/csv,text/plain" hidden>
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.5.0'};
+const APP={name:'Zählwerk',version:'0.6.0'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -618,6 +628,85 @@ function niceTicks(lo,hi,n){
 const YEAR_COL={dark:['#B08CF2','#4FD1E0','#FF6B61','#C9A27A','#B6E65A','#C3CAD3','#7CC8FF','#EC6FB0','#F2B21B','#3D8BFF','#43C463','#E8731A'],
  light:['#7A52D6','#0E8FA3','#C62F26','#8F6A3D','#4F7A00','#5F6B78','#1B86C9','#C23E85','#A06E00','#1F63D8','#1F8F3F','#C95A0A']};
 const yearColor=(y,light)=>YEAR_COL[light?'light':'dark'][((y%12)+12)%12];
+// ---- Kosten aus Rechnungsdaten ----
+const dParse=s=>{const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?new Date(+m[1],m[2]-1,+m[3]).getTime():NaN};
+function tariffList(list){return (list||[]).map(x=>({...x,ft:dParse(x.from)})).filter(x=>isFinite(x.ft)).sort((a,b)=>a.ft-b.ft)}
+function tariffAt(L,t){if(!L||!L.length)return null;let c=L[0];for(const x of L)if(x.ft<=t)c=x;return c}
+const unitGross=x=>(x.ap*(1-(x.rab||0)/100)-(x.rct||0))*(1+(x.vat||0)/100);
+const gpGross=x=>(x.gp||0)*(1-(x.rab||0)/100)*(1+(x.vat||0)/100);
+const yearDays=y=>Math.round((new Date(y+1,0,1)-new Date(y,0,1))/DAY);
+// Menge je Tag (D-artiges Objekt) -> Kosten je Tag; Gutschriften gleichmäßig auf die genannten Monate
+function costSeries(Q,L,credits){
+ const n=Q.st.length-1,v=new Float64Array(n);
+ for(let i=0;i<n;i++){
+  if(Q.cov[i]<=0)continue;const t=Q.st[i],x=tariffAt(L,t);if(!x)continue;
+  v[i]=Q.v[i]*unitGross(x)+gpGross(x)*(Q.cov[i]/DAY)/yearDays(new Date(t).getFullYear());
+ }
+ for(const c of credits||[]){
+  const per=c.gross/c.months.length;
+  for(const mo of c.months){
+   const idx=[];for(let i=0;i<n;i++){if(Q.cov[i]<=0)continue;const d=new Date(Q.st[i]);if(d.getFullYear()===c.year&&d.getMonth()+1===mo)idx.push(i)}
+   idx.forEach(i=>{v[i]+=per/idx.length});
+  }
+ }
+ return {st:Q.st,v,k:null,cov:Q.cov,lng:Q.lng,est:Q.est,first:Q.first,last:Q.last};
+}
+// Differenzreihe (Abwasser = Wasser minus Gartenwasser), am Tag ausgerichtet
+function diffSeries(A,B){
+ if(!B)return A;
+ const map=new Map();B.st.forEach((t,i)=>map.set(t,i));
+ const n=A.st.length-1,v=new Float64Array(n);
+ for(let i=0;i<n;i++){const j=map.get(A.st[i]);v[i]=A.v[i]-(j!=null&&j<B.v.length?B.v[j]:0)}
+ return {...A,v,k:null};
+}
+// Mittlere Bruttopreise eines Jahres (nach Tagen gewichtet)
+function yearPrice(L,y){
+ let s=0,g=0,n=0,est=false;
+ for(let d=new Date(y,0,1).getTime();d<new Date(y+1,0,1).getTime();d+=DAY){const x=tariffAt(L,d);if(!x||x.ft>d)continue;s+=unitGross(x);g+=gpGross(x);n++;if(x.est)est=true}
+ return n?{unit:s/n,gp:g/n,est}:null;
+}
+// Prognose für ein Jahr: echte Monate, sonst Mittel desselben Monats der drei Vorjahre
+function forecastYear(Q,L,y){
+ let cost=0,qty=0,actual=0,ok=true;
+ for(let mo=0;mo<12;mo++){
+  const s=new Date(y,mo,1).getTime(),e=new Date(y,mo+1,1).getTime(),o=sumRange(Q,s,e);
+  let q=o.v;
+  if(o.cov<o.span*0.99){
+   const prev=[1,2,3].map(k=>{const a=new Date(y-k,mo,1).getTime(),b=new Date(y-k,mo+1,1).getTime(),p=sumRange(Q,a,b);return p.cov>=p.span*0.99?p.v:null}).filter(x=>x!=null);
+   if(!prev.length){ok=false;continue}
+   q=o.v+(prev.reduce((a,b)=>a+b,0)/prev.length)*(1-o.cov/o.span);
+  }else actual++;
+  const x=tariffAt(L,(s+e)/2);if(!x){ok=false;continue}
+  qty+=q;cost+=q*unitGross(x)+gpGross(x)*((e-s)/DAY)/yearDays(y);
+ }
+ return {cost,qty,actual,ok};
+}
+// Rechnungsdatei übernehmen: Gas-Umrechnung, Endstände bei Zählerwechseln, echte Stände in Lücken, Zählernummern
+function applyBills(meters,readings,o,newId){
+ const res={conv:0,ends:[],added:[],numbers:0,skipped:0};
+ const mOf=md=>meters.find(m=>m.medium===md);
+ const rsOf=m=>readings.filter(r=>r.m===m.id).sort((a,b)=>a.t-b.t);
+ const gas=mOf('gas');
+ if(gas&&Array.isArray(o.conv)&&o.conv.length){gas.conv=o.conv.map(c=>({from:dParse(c.from),hs:+c.hs,z:+c.z})).filter(c=>isFinite(c.from)&&c.hs>0&&c.z>0).sort((a,b)=>a.from-b.from);res.conv=gas.conv.length}
+ for(const sw of o.swaps||[]){
+  const m=mOf(sw.medium);if(!m)continue;
+  const rs=rsOf(m),te=dParse(sw.endD||sw.d);if(!isFinite(te))continue;
+  const k=rs.findIndex(r=>r.w&&r.t>=te-DAY&&r.t<=te+120*DAY);if(k<1)continue;
+  const r=rs[k],prev=rs[k-1];
+  if(r.end==null&&sw.end!=null){r.end=Math.max(+sw.end,prev.v);r.start=r.start||0;res.ends.push({name:m.name,date:te,end:r.end})}
+  if(sw.nrOld&&(!prev.nr||prev.nrAuto)){prev.nr=sw.nrOld;delete prev.nrAuto;res.numbers++}
+ }
+ for(const x of o.readings||[]){
+  const m=mOf(x.medium),t=dParse(x.d);if(!m||!isFinite(t))continue;
+  const tt=t+12*3600e3,rs=rsOf(m);
+  if(rs.some(r=>Math.abs(r.t-tt)<20*DAY)){res.skipped++;continue}
+  const prev=rs.filter(r=>r.t<tt).pop(),next=rs.find(r=>r.t>tt);
+  if((prev&&prev.v>x.v)||(next&&!next.w&&next.v<x.v)){res.skipped++;continue}
+  const r={id:newId(),m:m.id,t:tt,v:+x.v,src:'re'};if(x.nr)r.nr=String(x.nr);
+  readings.push(r);res.added.push({name:m.name,t:tt,v:r.v});
+ }
+ return res;
+}
 // </logic>
 
 /* ---------- Konstanten ---------- */
@@ -670,7 +759,7 @@ function migrate(o){
  // Haushalte: der aktive Haushalt liegt in meters/readings/remind, die anderen tragen ihre Daten selbst
  if(!Array.isArray(o.homes)||!o.homes.length){o.homes=[{id:'h'+uid(),name:'Zuhause',created:Date.now()}];o.home=o.homes[0].id}
  if(!o.homes.some(h=>h.id===o.home))o.home=o.homes[0].id;
- for(const h of o.homes){if(h.id===o.home){delete h.meters;delete h.readings;delete h.remind}else{h.meters=h.meters||[];h.readings=h.readings||[];h.remind=h.remind||[];try{fillNumbers(h.meters,h.readings)}catch(e){}}}
+ for(const h of o.homes){if(h.id===o.home){delete h.meters;delete h.readings;delete h.remind;delete h.bills}else{h.meters=h.meters||[];h.readings=h.readings||[];h.remind=h.remind||[];try{fillNumbers(h.meters,h.readings)}catch(e){}}}
  return o}
 const packState=()=>({...S,homes:S.homes.map(h=>h.id===S.home?{id:h.id,name:h.name,created:h.created,...(h.arch?{arch:1}:{})}:h)});
 function load(){
@@ -977,7 +1066,7 @@ function viewHist(){
  const row=r=>{
   const k=rs.indexOf(r),pv=rs[k-1],showNr=r.nr&&(!pv||pv.nr!==r.nr);
   const x=byB.get(r.id),d=x?'+'+nf(x.cons,cd(m))+' '+esc(m.unit)+' · '+Math.round(x.days)+' Tage'+(x.est?' (geschätzt)':''):'Erster Stand';
-  return '<button class="item" data-act="editReading" data-id="'+r.id+'"><div><b class="mono">'+fmtValue(r.v,m.pre,m.dec)+'</b><div class="mu sm">'+fmtFull(r.t)+(showNr?' · Nr. '+esc(r.nr):'')+'</div></div><div class="mu sm right">'+d+(r.photo?' '+ico('photo','s'):'')+(r.w?' '+ico('swap','s'):'')+'</div></button>';
+  return '<button class="item" data-act="editReading" data-id="'+r.id+'"><div><b class="mono">'+fmtValue(r.v,m.pre,m.dec)+'</b><div class="mu sm">'+fmtFull(r.t)+(showNr?' · Nr. '+esc(r.nr):'')+(r.src==='re'?' · aus Rechnung':'')+'</div></div><div class="mu sm right">'+d+(r.photo?' '+ico('photo','s'):'')+(r.w?' '+ico('swap','s'):'')+'</div></button>';
  };
  const mk=t=>{const d=new Date(t);return d.getFullYear()*12+d.getMonth()},now=new Date();
  const start=mk(rs[0].t),last=mk(rs[rs.length-1].t),end=RO()?last:Math.max(last,now.getFullYear()*12+now.getMonth());
@@ -1039,9 +1128,9 @@ let A=null;
 function anaInit(){
  if(A)return;
  const p=S.set.ana||{};
- A={mid:null,mode:p.mode||'year',type:p.type||'bar',gran:p.gran||'m',metric:p.metric||'sum',kwh:!!p.kwh,years:null,pa:null,pb:null,open:false,sel:null};
+ A={view:p.view||'use',mid:null,mode:p.mode||'year',type:p.type||'bar',gran:p.gran||'m',metric:p.metric||'sum',kwh:!!p.kwh,years:null,pa:null,pb:null,open:false,sel:null};
 }
-function anaKeep(){S.set.ana={mode:A.mode,type:A.type,gran:A.gran,metric:A.metric,kwh:A.kwh};save()}
+function anaKeep(){S.set.ana={view:A.view,mode:A.mode,type:A.type,gran:A.gran,metric:A.metric,kwh:A.kwh};save()}
 const isLight=()=>document.documentElement.dataset.theme==='light';
 const seg=(act,cur,opts)=>'<div class="seg" role="group">'+opts.map(o=>'<button data-act="'+act+'" data-v="'+o[0]+'" aria-pressed="'+(cur===o[0])+'"'+(o[2]?' aria-label="'+o[2]+'"':'')+'>'+o[1]+'</button>').join('')+'</div>';
 const fmtVal=x=>x==null?'–':nf(x,Math.abs(x)>=100?0:Math.abs(x)>=10?1:2);
@@ -1057,7 +1146,8 @@ function anaDefaults(D){
  }
 }
 // Diagramm als SVG: series=[{label,col,pts:[bucket|null]}], labels = Beschriftung der x-Achse
-function chartSvg(series,labels,type,metric,sel){
+function chartSvg(series,labels,type,metric,sel,act){
+ if(act==null)act='anaPick';
  const W=340,H=196,L=40,R=6,T=10,B=20,pw=W-L-R,ph=H-T-B,n=labels.length;
  const val=p=>p?(metric==='day'?p.v/p.days:p.v):null;
  let mx=0,mn=0;series.forEach(s=>s.pts.forEach(p=>{const x=val(p);if(x!=null){mx=Math.max(mx,x);mn=Math.min(mn,x)}}));
@@ -1086,7 +1176,7 @@ function chartSvg(series,labels,type,metric,sel){
    P.forEach(q=>{if(!q)return;h+='<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="2.8" fill="'+(q.p.interp?'var(--card)':s.col)+'" stroke="'+s.col+'" stroke-width="1.6"'+(q.p.part?' opacity=".5"':'')+'/>';if(q.p.est)h+=tri(q.x,q.y-7)});
   });
  }
- for(let i=0;i<n;i++)h+='<rect x="'+(L+i*gw).toFixed(1)+'" y="0" width="'+gw.toFixed(1)+'" height="'+H+'" fill="transparent" data-act="anaPick" data-i="'+i+'" style="cursor:pointer"/>';
+ if(act)for(let i=0;i<n;i++)h+='<rect x="'+(L+i*gw).toFixed(1)+'" y="0" width="'+gw.toFixed(1)+'" height="'+H+'" fill="transparent" data-act="'+act+'" data-i="'+i+'" style="cursor:pointer"/>';
  return h+'</svg>';
 }
 const tri=(x,y)=>'<path d="M'+x.toFixed(1)+' '+(y-3.5).toFixed(1)+'l3.2 5.2h-6.4z" fill="var(--warn)"/>';
@@ -1099,6 +1189,10 @@ function anaFolds(){
 }
 function viewAna(){
  anaInit();
+ const top='<div class="vsw">'+seg('anaView',A.view,[['use','Verbrauch'],['cost','Kosten']])+'</div>';
+ return top+(A.view==='cost'?viewCost():viewUse());
+}
+function viewUse(){
  if(!S.meters.length)return '<div class="card"><p>Noch keine Zähler.</p></div>';
  if(!meterById(A.mid))A.mid=S.meters[0].id;
  const m=meterById(A.mid),D=dailySeries(readingsOf(m.id),m.conv);
@@ -1208,6 +1302,111 @@ async function editConv(m){
  }
 }
 
+/* ---------- Kosten (Rechnungsmodul) ---------- */
+const MED=[['strom','Strom','var(--c-strom)'],['gas','Gas','var(--c-gas)'],['wasser','Wasser','var(--c-wasser)'],['abwasser','Abwasser','var(--c-sand)']];
+let K={year:null,sel:null,med:'strom'};
+const eur=x=>x==null?'–':nf(x,Math.abs(x)>=1000?0:2)+' €';
+const eur0=x=>x==null?'–':nf(Math.round(x),0)+' €';
+function costCtx(){
+ const B=S.bills;if(!B||!B.tariffs)return null;
+ const mOf=md=>S.meters.find(m=>m.medium===md),ser=(m,conv)=>m?dailySeries(readingsOf(m.id),conv):null;
+ const g=mOf('gas'),st=mOf('strom'),w=mOf('wasser'),gw=mOf('garten');
+ const gD=g?ser(g,g.conv):null,wD=ser(w),nD=ser(gw);
+ const Q={strom:ser(st),gas:gD&&gD.k?{...gD,v:gD.k}:null,wasser:wD,abwasser:wD?diffSeries(wD,nD):null};
+ const T={},C={};
+ for(const [k] of MED){T[k]=tariffList(B.tariffs[k]);if(Q[k]&&T[k].length)C[k]=costSeries(Q[k],T[k],(B.credits||[]).filter(c=>c.medium===k))}
+ return {B,Q,T,C,gasNoConv:!!(g&&gD&&!gD.k)};
+}
+function costChart(ctx,y,sel){
+ const W=340,H=196,L=40,R=6,T=10,Bm=20,pw=W-L-R,ph=H-T-Bm,gw=pw/12,bw=gw*.62;
+ const cols=MED.filter(([k])=>ctx.C[k]).map(([k,lab,col])=>({k,lab,col,b:yearBuckets(ctx.C[k],y,'m',false)}));
+ let mx=0;for(let i=0;i<12;i++){let s=0;cols.forEach(c=>{if(c.b[i])s+=Math.max(0,c.b[i].v)});mx=Math.max(mx,s)}
+ const tk=niceTicks(0,mx||1,4),y1=tk[tk.length-1],Y=v=>T+ph-v/y1*ph;
+ let h='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Kosten je Monat"><defs>'+cols.map((c,i)=>'<pattern id="kx'+i+'" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><rect width="4" height="4" style="fill:'+c.col+';fill-opacity:.25"/><rect width="1.8" height="4" style="fill:'+c.col+'"/></pattern>').join('')+'</defs>';
+ if(sel!=null)h+='<rect x="'+(L+sel*gw).toFixed(1)+'" y="'+T+'" width="'+gw.toFixed(1)+'" height="'+ph+'" rx="4" fill="var(--tx)" fill-opacity=".07"/>';
+ tk.forEach(t=>{const yy=Y(t).toFixed(1);h+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'" stroke="var(--line)"/><text x="'+(L-5)+'" y="'+(+yy+3.5)+'" text-anchor="end">'+nf(t,0)+'</text>'});
+ MON.forEach((l,i)=>{h+='<text x="'+(L+(i+.5)*gw).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle">'+l+'</text>'});
+ for(let i=0;i<12;i++){
+  let base=0;const x=L+i*gw+(gw-bw)/2;
+  cols.forEach((c,ci)=>{const p=c.b[i];if(!p||p.v<=0)return;const y0=Y(base),y2=Y(base+p.v);base+=p.v;
+   h+='<rect x="'+x.toFixed(1)+'" y="'+y2.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(.6,y0-y2).toFixed(1)+'" style="fill:'+(p.interp?'url(#kx'+ci+')':c.col)+(p.part?';fill-opacity:.45':'')+'"/>'});
+ }
+ for(let i=0;i<12;i++)h+='<rect x="'+(L+i*gw).toFixed(1)+'" y="0" width="'+gw.toFixed(1)+'" height="'+H+'" fill="transparent" data-act="costPick" data-i="'+i+'" style="cursor:pointer"/>';
+ return {svg:h+'</svg>',cols};
+}
+function viewCost(){
+ if(!S.meters.length)return '<div class="card"><p>Noch keine Zähler.</p></div>';
+ const ctx=costCtx();
+ if(!ctx)return '<section class="card"><h2>Kosten</h2><p class="mu sm">Für die Kosten braucht die App die Preise aus deinen Jahresrechnungen. Lade dazu eine Rechnungsdatei unter Einstellungen, Daten und Sicherung.</p><button class="btn sec wide" data-act="goData">Rechnungsdatei laden</button></section>';
+ const B=ctx.B,light=isLight(),inv=(B.invoices||[]).slice().sort((a,b)=>a.year-b.year);
+ const years=[...new Set(Object.values(ctx.C).flatMap(c=>yearsOf(c)))].sort((a,b)=>a-b).filter(y=>Object.values(ctx.C).some(c=>sumRange(c,new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime()).cov>0));
+ if(!years.includes(K.year))K.year=years.filter(y=>{const c=ctx.C.strom||Object.values(ctx.C)[0];const o=sumRange(c,new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime());return o.cov>=o.span*0.99}).pop()||years[years.length-1];
+ const y=K.year,ch=costChart(ctx,y,K.sel);
+ let total=0,anySim=false,anyPart=false;const per=ch.cols.map(c=>{const s=c.b.reduce((a,p)=>a+(p?p.v:0),0);total+=s;if(c.b.some(p=>p&&p.interp))anySim=true;if(c.b.some(p=>p&&p.part))anyPart=true;return [c,s]});
+ let det='<span class="mu">Tippe auf einen Monat, um die Kosten zu sehen.</span>';
+ if(K.sel!=null){const parts=ch.cols.map(c=>{const p=c.b[K.sel];return p?'<span class="dv"><i class="yd" style="--mc:'+c.col+'"></i>'+c.lab+'<b>'+eur(p.v)+'</b>'+(p.interp?'<span class="mu">simuliert</span>':'')+'</span>':''}).filter(Boolean);
+  const sum=ch.cols.reduce((a,c)=>a+(c.b[K.sel]?c.b[K.sel].v:0),0);
+  det=parts.length?'<span class="dv"><b style="margin:0">'+MON[K.sel]+' '+y+': '+eur(sum)+'</b></span>'+parts.join(''):'<span class="mu">Für diesen Monat gibt es keine Werte.</span>'}
+ let h='<section class="card"><div class="atop"><h2 style="margin:0">Kosten je Monat</h2><span class="mu sm">brutto</span></div>'+
+  '<div class="chips ychips">'+years.map(yy=>'<button class="chip sm" data-act="costYear" data-y="'+yy+'" aria-pressed="'+(yy===y)+'" style="--mc:'+yearColor(yy,light)+'">'+yy+'</button>').join('')+'</div>'+
+  '<div class="cunit mu sm">€</div>'+ch.svg+
+  '<div class="legend">'+ch.cols.map(c=>'<span><i class="lg" style="--mc:'+c.col+'"></i>'+c.lab+'</span>').join('')+(anySim?'<span><i class="lg h"></i>simuliert</span>':'')+(anyPart?'<span><i class="lg p"></i>unvollständig</span>':'')+'</div>'+
+  '<div class="adet">'+det+'</div>'+
+  '<div class="ksum"><div><span class="mu sm">Summe '+y+'</span><b>'+eur0(total)+'</b></div><div><span class="mu sm">pro Monat</span><b>'+eur0(total/12)+'</b></div></div>'+
+  '<div class="kmed">'+per.map(([c,s])=>'<span><i class="yd" style="--mc:'+c.col+'"></i>'+c.lab+' <b>'+eur0(s)+'</b></span>').join('')+'</div>'+
+  '<details class="fold"><summary>So werden die Kosten berechnet</summary><p>Verbrauch je Tag aus deinen Ablesungen mal Arbeitspreis, dazu der Grundpreis anteilig je Tag, jeweils mit Rabatt und Umsatzsteuer aus der Rechnung. Gutschriften wie die Preisbremsen 2023 sind auf die Monate verteilt.</p><p><b>Abwasser</b>: Wasser minus Gartenwasser, wie bei den Stadtwerken.</p><p>Die berechneten Jahreskosten liegen bei deinen Rechnungen meist weniger als 2 % neben dem Rechnungsbetrag. Der Rest kommt von den Ablesetagen.</p></details></section>';
+ // Prognose
+ const fy=new Date().getFullYear(),i1=inv.filter(x=>x.year===fy-1&&x.next).pop(),i2=inv.filter(x=>x.year===fy-2&&x.next).pop();
+ if(i1){
+  let rows='',tc=0,ta=0,real=12;
+  MED.forEach(([k,lab,col])=>{if(!ctx.Q[k]||!ctx.T[k].length)return;const f=forecastYear(ctx.Q[k],ctx.T[k],fy);if(!f.ok)return;real=Math.min(real,f.actual);
+   const ab=(i1.next[k]||0)*11+((i2&&i2.next&&i2.next[k])||i1.next[k]||0),d=ab-f.cost,sug=Math.ceil((f.cost-((i2&&i2.next&&i2.next[k])||i1.next[k]||0))/11);tc+=f.cost;ta+=ab;
+   rows+='<tr><td><span class="yd" style="--mc:'+col+'"></span>'+lab+'</td><td>'+eur0(f.cost)+'</td><td>'+eur0(ab)+'</td><td class="'+(d>=0?'pos':'neg')+'">'+(d>=0?'+':'−')+eur0(Math.abs(d))+'</td><td>'+eur0(sug)+'</td></tr>'});
+  const d=ta-tc;
+  h+='<section class="card"><h2>Prognose '+fy+'</h2><div class="kres '+(d>=0?'pos':'neg')+'"><span>'+(d>=0?'Voraussichtlich Guthaben':'Voraussichtlich Nachzahlung')+'</span><b>'+eur0(Math.abs(d))+'</b></div>'+
+   '<div class="tscroll"><table class="kpi"><tr><th>Medium</th><th>Kosten</th><th>Abschläge</th><th>Ergebnis</th><th>Passend</th></tr>'+rows+'<tr class="tot"><td>Gesamt</td><td>'+eur0(tc)+'</td><td>'+eur0(ta)+'</td><td class="'+(d>=0?'pos':'neg')+'">'+(d>=0?'+':'−')+eur0(Math.abs(d))+'</td><td></td></tr></table></div>'+
+   '<details class="fold"><summary>Worauf die Prognose beruht</summary><p><b>Verbrauch</b>: '+(real?real+' Monate aus deinen Ablesungen, die übrigen':'alle Monate')+' als Mittel derselben Monate der letzten drei Jahre.</p><p><b>Preise</b>: aus der letzten Rechnung'+(ctx.T.wasser.some(x=>x.est&&x.ft>=new Date(fy,0,1).getTime())?', Wasser mit dem angekündigten Preis ab Januar':'')+'. Ändern sich Preise, ändert sich die Prognose.</p><p><b>Abschläge</b>: Januar zum alten Betrag, Februar bis Dezember zum neuen laut Rechnung '+i1.year+'.</p><p><b>Passend</b>: der Monatsabschlag ab Februar, mit dem es ungefähr aufgeht.</p></details></section>';
+ }
+ // Jahresüberblick
+ const yr=inv.map(x=>{const ks=MED.map(([k])=>x.m[k]||{});const cost=ks.reduce((a,b)=>a+(b.gross||0),0)+Object.values(x.credit||{}).reduce((a,b)=>a+b,0),paid=ks.reduce((a,b)=>a+(b.paid||0),0);
+  return x.missing?'<tr><td>'+x.year+'</td><td colspan="3" class="mu" style="text-align:left">Rechnung fehlt</td></tr>':'<tr><td>'+x.year+'</td><td>'+eur0(cost)+'</td><td>'+eur0(paid)+'</td><td class="'+(paid-cost>=0?'pos':'neg')+'">'+(paid-cost>=0?'+':'−')+eur0(Math.abs(paid-cost))+'</td></tr>'}).reverse().join('');
+ h+='<section class="card"><h2>Rechnungen</h2><div class="tscroll"><table class="kpi"><tr><th>Jahr</th><th>Rechnung</th><th>Abschläge</th><th>Ergebnis</th></tr>'+yr+'</table></div>'+
+  '<details class="fold"><summary>Was die Spalten zeigen</summary><p>Rechnungsbetrag brutto für Strom, Gas, Wasser und Abwasser, abzüglich Gutschriften. Abschläge sind die bezahlten Beträge laut Rechnung. Plus bedeutet Guthaben, Minus Nachzahlung.</p><p>2017 umfasst den Zeitraum ab 19.11.2016.</p></details></section>';
+ // Preise und Abgleich je Medium
+ const md=MED.find(x=>x[0]===K.med)||MED[0],Lm=ctx.T[md[0]],py=[];
+ for(let yy=years[0];yy<=fy;yy++)py.push(yy);
+ const isE=md[0]==='strom'||md[0]==='gas',mult=isE?100:1,pu=isE?'ct/kWh':'€/m³';
+ const pts=py.map(yy=>{const p=yearPrice(Lm,yy);return p?{v:p.unit*mult,days:1,interp:p.est,lab:String(yy)}:null});
+ const gps=py.map(yy=>{const p=yearPrice(Lm,yy);return p?p.gp:null});
+ const first=pts.find(Boolean),lastP=pts.filter(Boolean).pop();
+ h+='<section class="card"><div class="atop"><h2 style="margin:0">Preise und Abgleich</h2></div>'+seg('costMed',K.med,MED.map(([k,l])=>[k,l])).replace('class="seg"','class="seg full"')+
+  '<div class="cunit mu sm">Arbeitspreis brutto in '+pu+'</div>'+chartSvg([{label:md[1],col:md[2],pts}],py.map(String),'line','sum',null,'')+
+  (first&&lastP?'<p class="mu sm" style="margin:2px 2px 8px">'+first.lab+': '+nf(first.v,2)+' '+pu+', '+lastP.lab+': '+nf(lastP.v,2)+' '+pu+' ('+fmtPct((lastP.v-first.v)/first.v)+'). Grundpreis zuletzt '+eur0(gps.filter(x=>x!=null).pop())+' im Jahr.</p>':'');
+ const unit=isE?'kWh':'m³',rows2=inv.map(x=>{const b=x.m[md[0]];if(!b||b.q==null||!ctx.Q[md[0]])return '';const s=dParse(x.from),e=dParse(x.to)+DAY,o=sumRange(ctx.Q[md[0]],s,e);if(o.cov<=0)return '';
+  const dv=(o.v-b.q)/b.q;return '<tr><td>'+x.year+'</td><td>'+nf(b.q,0)+'</td><td>'+nf(o.v,0)+'</td><td class="'+(Math.abs(dv)>0.03?'neg':'')+'">'+fmtPct(dv)+'</td></tr>'}).reverse().join('');
+ h+='<div class="flab" style="margin-top:10px">Verbrauch laut Rechnung und laut Zählwerk in '+unit+'</div><div class="tscroll"><table class="kpi"><tr><th>Jahr</th><th>Rechnung</th><th>Zählwerk</th><th>Abweichung</th></tr>'+rows2+'</table></div>'+
+  '<details class="fold"><summary>Wozu der Abgleich?</summary><p>Die Stadtwerke lesen Mitte Dezember ab oder übernehmen deine Meldung und rechnen bis 31.12. hoch. Kleine Abweichungen kommen von den unterschiedlichen Stichtagen. Ab etwa 3 % lohnt ein Blick in die Rechnung, die Zeile ist dann markiert.</p><p>Hohle Punkte im Preisverlauf sind angenommene Preise, zum Beispiel 2021, weil diese Rechnung fehlt.</p></details></section>';
+ if(ctx.gasNoConv)h+='<div class="banner">'+ico('warn')+'<div>Für Gas fehlt die Umrechnung in kWh. Sie kommt mit der Rechnungsdatei.</div></div>';
+ return h;
+}
+async function importBillsFile(f){
+ if(!f)return;if(roBlock())return;
+ try{
+  const o=JSON.parse(await f.text());
+  if(!o||o.type!=='zaehlwerk-rechnungen'||!o.tariffs)throw new Error('Das ist keine Zählwerk-Rechnungsdatei.');
+  const res=applyBills(S.meters,S.readings,o,uid);fillNumbers(S.meters,S.readings);
+  S.bills={provider:o.provider||'',tariffs:o.tariffs,invoices:o.invoices||[],credits:o.credits||[],loaded:Date.now()};
+  save();R.digits=[];render();
+  const yrs=(o.invoices||[]).filter(x=>!x.missing).map(x=>x.year);
+  await modal('<h3>Rechnungsdaten geladen</h3><ul class="tips"><li><b>'+yrs.length+'</b> Jahresrechnungen ('+(yrs.length?yrs[0]+' bis '+yrs[yrs.length-1]:'')+')'+((o.invoices||[]).some(x=>x.missing)?', '+o.invoices.filter(x=>x.missing).map(x=>x.year).join(', ')+' fehlt':'')+'</li>'+
+   (res.conv?'<li>Gas-Umrechnung in kWh mit '+res.conv+' Zeiträumen</li>':'')+
+   res.ends.map(e=>'<li>Endstand '+esc(e.name)+' beim Zählerwechsel: '+nf(e.end,3).replace(/,?0+$/,'')+' am '+fmtDay(e.date)+'</li>').join('')+
+   (res.added.length?'<li>'+res.added.length+' Zählerstände aus Rechnungen in Lücken ergänzt: '+res.added.map(a=>esc(a.name)+' '+fmtDay(a.t)).join(', ')+'</li>':'')+
+   (res.numbers?'<li>'+res.numbers+' frühere Zählernummern ergänzt</li>':'')+
+   '</ul><p class="mu sm">Stände, zu denen du schon eigene Ablesungen hast, bleiben unverändert. Geschätzte Werte der Stadtwerke werden nicht übernommen.</p><div class="row"><button class="btn" data-val="ok">Zu den Kosten</button><button class="btn sec" data-val="close">Schließen</button></div>').then(v=>{if(v==='ok'){anaInit();A.view='cost';go('ana')}});
+ }catch(e){toast(e.message||'Die Datei ist nicht lesbar.')}
+}
+
 /* ---------- Haushalte ---------- */
 const homeOf=()=>S.homes.find(h=>h.id===S.home)||S.homes[0];
 const RO=()=>!!homeOf().arch;
@@ -1215,9 +1414,9 @@ function roBlock(){if(RO()){toast('„'+homeOf().name+'“ ist archiviert und nu
 function homeStats(h){const a=h.id===S.home;return {m:(a?S.meters:h.meters||[]).length,r:(a?S.readings:h.readings||[]).length}}
 function switchHome(id){
  const cur=homeOf(),nx=S.homes.find(h=>h.id===id);if(!nx||nx===cur)return;
- cur.meters=S.meters;cur.readings=S.readings;cur.remind=S.remind;
- S.meters=nx.meters||[];S.readings=nx.readings||[];S.remind=nx.remind||[];
- delete nx.meters;delete nx.readings;delete nx.remind;S.home=id;
+ cur.meters=S.meters;cur.readings=S.readings;cur.remind=S.remind;cur.bills=S.bills||null;
+ S.meters=nx.meters||[];S.readings=nx.readings||[];S.remind=nx.remind||[];S.bills=nx.bills||null;
+ delete nx.meters;delete nx.readings;delete nx.remind;delete nx.bills;S.home=id;K={year:null,sel:null,med:'strom'};
  R={mid:null,digits:[],dt:'',photoNote:'',scan:'',scanMsg:'',helpOpen:false};H={mid:null,open:null};
  if(A){A.mid=null;A.years=null;A.pa=null;A.pb=null;A.sel=null}
  crReset();save();
@@ -1300,6 +1499,8 @@ function viewSet(){
  if(SETP==='data')return backBar('Daten und Sicherung')+'<section class="card"><p class="mu sm">Alle Daten liegen auf diesem Gerät. Die Sicherung enthält alle Haushalte, Fotos sind nicht enthalten.'+(S.set.lastBackup?' Letzte Sicherung: '+fmtDay(S.set.lastBackup)+'.':' Es gibt noch keine Sicherung.')+'</p>'+
   '<div class="stack two"><button class="btn" data-act="exportData">Sicherung speichern</button><button class="btn sec" data-act="importData">Sicherung laden</button></div></section>'+
   '<section class="card"><h2>Ablesungen als Tabelle (CSV)</h2><p class="mu sm">Der Import fügt neue Ablesungen in den Haushalt „'+esc(homeOf().name)+'“ ein und lässt vorhandene unverändert. Der Export enthält auch die Stände bei Zählerwechseln. Die Spalten heißen Zähler, Datum und Stand, auf Wunsch zusätzlich Zählernummer, zum Beispiel „Gas;19.11.2026 18:00;1850,123;10146039“.</p><div class="stack two"><button class="btn sec" data-act="importCsv">CSV importieren</button><button class="btn sec" data-act="exportCsv">CSV exportieren</button></div></section>'+
+  '<section class="card"><h2>Rechnungsdaten</h2><p class="mu sm">'+(S.bills?'Geladen: '+(S.bills.invoices||[]).filter(x=>!x.missing).length+' Jahresrechnungen'+(S.bills.provider?' der '+esc(S.bills.provider):'')+', am '+fmtDay(S.bills.loaded)+'. Eine neue Datei ersetzt die Preise und ergänzt fehlende Stände.':'Mit den Preisen aus deinen Jahresrechnungen berechnet die App Kosten, Preisentwicklung und die Prognose für die Abschläge.')+'</p>'+
+  '<div class="stack'+(S.bills?' two':'')+'"><button class="btn sec" data-act="importBills">Rechnungsdatei laden</button>'+(S.bills?'<button class="btn sec" data-act="dropBills">Entfernen</button>':'')+'</div></section>'+
   '<section class="card"><h2>Löschen</h2><p class="mu sm"><b>Nur Ablesungen</b> im Haushalt „'+esc(homeOf().name)+'“: Zähler, Nummern, Farben und Erinnerungen bleiben. Danach kannst du eine CSV-Datei neu einlesen. Einzelne Jahre, Monate oder Zähler löschst du im Verlauf.</p><button class="btn danger wide" data-act="wipeReadings">Nur Ablesungen löschen</button>'+
   '<p class="mu sm" style="margin-top:12px"><b>Alles</b>: entfernt alle Haushalte, Zähler, Ablesungen und Fotos von diesem Gerät.</p><button class="btn danger wide" data-act="wipe">Alle Daten löschen</button></section>';
  if(SETP==='info')return backBar('Info')+'<section class="card"><p><b>'+APP.name+'</b> '+APP.version+'</p><p class="mu sm">Zählerstände erfassen, prüfen und auswerten. Die App arbeitet ohne Server, alle Daten bleiben auf deinem Gerät.</p></section>';
@@ -1552,6 +1753,12 @@ const ACT={
  pickMeter:el=>{R.mid=el.dataset.id;rDigits();render()},
  pickHist:el=>{H.mid=el.dataset.id;render()},
  homes:()=>pickHome(),
+ anaView:el=>{A.view=el.dataset.v;anaKeep();render()},
+ costYear:el=>{K.year=+el.dataset.y;K.sel=null;render()},
+ costPick:el=>{const i=+el.dataset.i;K.sel=K.sel===i?null:i;render()},
+ costMed:el=>{K.med=el.dataset.v;render()},
+ importBills:()=>$('#fbill').click(),
+ dropBills:async()=>{const a=await modal('<h3>Rechnungsdaten entfernen?</h3><p>Preise und Rechnungen werden aus der App entfernt. Ergänzte Zählerstände, Endstände und die Gas-Umrechnung bleiben erhalten.</p><div class="row"><button class="btn danger" data-val="yes">Entfernen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');if(a!=='yes')return;S.bills=null;save();render();toast('Rechnungsdaten entfernt.')},
  addHome:()=>addHome(),
  editHome:el=>editHome(el.dataset.id),
  delYear:el=>delPeriod(+el.dataset.y,null),
@@ -1606,7 +1813,7 @@ document.addEventListener('click',e=>{
  const el=e.target.closest('[data-act]');
  if(el&&ACT[el.dataset.act]){e.preventDefault();if(RO_ACTS.has(el.dataset.act)&&roBlock())return;ACT[el.dataset.act](el,e)}
 });
-const RO_ACTS=new Set(['addMeter','saveReading','importCsv','wipeReadings','delYear','delMonth','addRem','editRem','camera','library','pastePhoto','anaConv','editMeter','exportIcs']);
+const RO_ACTS=new Set(['importBills','dropBills','addMeter','saveReading','importCsv','wipeReadings','delYear','delMonth','addRem','editRem','camera','library','pastePhoto','anaConv','editMeter','exportIcs']);
 document.addEventListener('toggle',e=>{const t=e.target;if(t.matches&&t.matches('details.yr')&&H.open){const y=+t.dataset.y;t.open?H.open.add(y):H.open.delete(y)}},true);
 document.addEventListener('change',e=>{
  if(e.target.id==='rm-kind'&&RM)rmLive();
@@ -1651,6 +1858,7 @@ document.addEventListener('paste',e=>{
 $('#fcam').addEventListener('change',e=>{const el=e.target;handlePhoto(el.files[0]).finally(()=>{el.value=''})});
 $('#flib').addEventListener('change',e=>{const el=e.target;handlePhoto(el.files[0]).finally(()=>{el.value=''})});
 $('#fimp').addEventListener('change',e=>{importFile(e.target.files[0]);e.target.value=''});
+$('#fbill').addEventListener('change',e=>{const el=e.target;importBillsFile(el.files[0]).finally(()=>{el.value=''})});
 $('#fcsv').addEventListener('change',e=>{const el=e.target;importCsv(el.files[0]).finally(()=>{el.value=''})});
 window.addEventListener('resize',()=>{if(CR.src&&$('#crop')){crDraw()}});
 
