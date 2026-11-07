@@ -145,6 +145,49 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 #toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);opacity:0;pointer-events:none;background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:14.5px;max-width:90vw;transition:.25s;z-index:9}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
+.seg{display:inline-flex;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+.seg button{min-height:34px;min-width:38px;border:0;background:transparent;color:var(--mu);font:600 13.5px system-ui,-apple-system,sans-serif;padding:0 12px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.seg button .ic{width:18px;height:18px}
+.seg button[aria-pressed=true]{background:color-mix(in srgb,var(--pri) 18%,var(--card));color:var(--tx);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 0 1px color-mix(in srgb,var(--pri) 45%,transparent)}
+.atop{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
+.atop .seg:last-child button{padding:0 9px}
+.fbtn{width:100%;display:flex;align-items:center;gap:9px;min-height:42px;padding:0 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--pri) 60%,transparent);background:color-mix(in srgb,var(--pri) 11%,transparent);color:var(--tx);font:inherit;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.fbtn .ic{color:var(--pri);width:18px;height:18px}.fbtn b{color:var(--pri);font-weight:650;font-size:14.5px}
+.fbtn .fs{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mu);font-size:13px}
+.chev{width:7px;height:7px;border-right:2px solid var(--pri);border-bottom:2px solid var(--pri);transform:rotate(45deg);margin:0 4px 3px;transition:transform .15s;flex:none}
+.fbtn[aria-expanded=true] .chev{transform:rotate(-135deg);margin-bottom:-3px}
+.fpanel{border:1px solid var(--line);border-radius:12px;padding:2px 10px 10px;margin-top:6px;background:var(--glass)}
+.flab{font-size:12px;color:var(--mu);margin:9px 0 5px;display:flex;align-items:center}
+.chip.sm{min-height:34px;padding:0 11px;font-size:13.5px}
+.mrow{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.mrow input{font:inherit;font-size:16px;color:var(--tx);background:var(--card2);border:1px solid var(--line);border-radius:10px;min-height:40px;padding:0 8px;width:100%;min-width:0;-webkit-appearance:none;appearance:none}
+.cunit{margin:10px 0 -4px 2px}
+.chart{display:block;width:100%;height:auto;margin:6px 0 2px;-webkit-user-select:none;user-select:none}
+.chart text{fill:var(--mu);font:10px system-ui,-apple-system,sans-serif}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;color:var(--mu);margin:4px 2px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.lg{width:11px;height:11px;border-radius:3px;background:var(--mc)}
+.lg.h{background:repeating-linear-gradient(45deg,var(--mu) 0 1.6px,transparent 1.6px 3.6px);border:1px solid var(--mu)}
+.lg.p{background:var(--mu);opacity:.42}
+.lgt{width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:8px solid var(--warn)}
+.adet{font-size:13px;min-height:36px;padding:7px 10px;border-radius:10px;background:var(--glass);margin:6px 0 2px;display:flex;flex-wrap:wrap;gap:3px 14px;align-items:center}
+.dv{display:inline-flex;align-items:center;white-space:nowrap;gap:5px}.dv .yd{margin-right:0}
+.yd{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--mc);margin-right:6px;flex:none}
+details.fold{margin:4px 0 0}
+details.fold summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:7px;min-height:34px;font-size:13px;color:var(--mu);font-weight:600}
+details.fold summary::-webkit-details-marker{display:none}
+details.fold summary::before{content:"";width:6px;height:6px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s;margin:0 2px 0 3px}
+details.fold[open] summary::before{transform:rotate(45deg);margin-top:-3px}
+details.fold p{font-size:13px;color:var(--mu);margin:0 0 7px 17px}
+details.fold p b{color:var(--tx);font-weight:600}
+.tscroll{overflow-x:auto}
+table.kpi{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+table.kpi th{font-weight:600;color:var(--mu);font-size:12px;text-align:right;padding:2px 4px 5px}
+table.kpi th:first-child,table.kpi td:first-child{text-align:left}
+table.kpi td{padding:8px 4px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.convrow{border-top:1px solid var(--line);padding-top:4px;margin-top:6px}
+.crh{display:flex;justify-content:space-between;align-items:center}.crh .btn{min-height:34px;color:var(--bad)}
+@media (prefers-reduced-motion:reduce){.chev,details.fold summary::before{transition:none}}
 </style>
 </head>
 <body>
@@ -153,7 +196,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
   <main id="view"></main>
 </div>
 <nav id="tabs" aria-label="Hauptnavigation"><div>
-  <button data-act="go" data-v="home"></button><button data-act="go" data-v="read"></button><button data-act="go" data-v="hist"></button><button data-act="go" data-v="set"></button>
+  <button data-act="go" data-v="home"></button><button data-act="go" data-v="read"></button><button data-act="go" data-v="hist"></button><button data-act="go" data-v="ana"></button><button data-act="go" data-v="set"></button>
 </div></nav>
 <dialog id="dlg"></dialog>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -166,7 +209,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.3.4'};
+const APP={name:'Zählwerk',version:'0.4.0'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -440,6 +483,106 @@ function buildCsv(meters,readings){
  }
  return '\uFEFF'+L.join('\r\n');
 }
+// ---- Auswertung: Tagesverteilung, Monate, Jahre ----
+const LONG_DAYS=40; // längere Intervalle gelten als interpoliert
+const MON=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+// Umrechnungsfaktor (kWh je m³) zum Zeitpunkt t; der erste Zeitraum gilt auch rückwirkend
+function convAt(conv,t){
+ if(!conv||!conv.length)return null;
+ const s=[...conv].sort((a,b)=>a.from-b.from);let c=s[0];
+ for(const x of s)if(x.from<=t)c=x;
+ return c.hs*c.z;
+}
+// Jedes Intervall wird gleichmäßig auf seine Zeit verteilt (= lineare Interpolation der Stände)
+function dailySeries(rs,conv){
+ rs=[...rs].sort((a,b)=>a.t-b.t);
+ if(rs.length<2)return null;
+ const f=new Date(rs[0].t),y0=f.getFullYear(),m0=f.getMonth(),d0=f.getDate(),last=rs[rs.length-1].t,st=[];
+ for(let i=0;;i++){const t=new Date(y0,m0,d0+i).getTime();st.push(t);if(t>last)break}
+ const n=st.length-1,v=new Float64Array(n),k=new Float64Array(n),cov=new Float64Array(n),lng=new Float64Array(n),est=new Float64Array(n);
+ let j=0;
+ for(const x of intervalsOf(rs)){
+  const a=x.a.t,b=x.b.t;if(b<=a)continue;
+  const rate=x.cons/(b-a),long=x.days>LONG_DAYS;
+  while(j<n-1&&st[j+1]<=a)j++;
+  for(let i=j;i<n&&st[i]<b;i++){
+   const s=Math.max(a,st[i]),e=Math.min(b,st[i+1]);if(e<=s)continue;
+   const ms=e-s;v[i]+=rate*ms;cov[i]+=ms;if(long)lng[i]+=ms;if(x.est)est[i]+=ms;
+  }
+ }
+ const hasK=!!(conv&&conv.length);
+ if(hasK)for(let i=0;i<n;i++)k[i]=v[i]*convAt(conv,st[i]);
+ return {st,v,k:hasK?k:null,cov,lng,est,first:rs[0].t,last};
+}
+function sumRange(D,s,e,kwh){
+ const st=D.st,o={v:0,cov:0,lng:0,est:0,span:e-s};
+ let lo=0,hi=st.length-1;while(lo<hi){const mid=(lo+hi)>>1;if(st[mid+1]<=s)lo=mid+1;else hi=mid}
+ const src=kwh&&D.k?D.k:D.v;
+ for(let i=lo;i<st.length-1&&st[i]<e;i++){if(st[i+1]<=s)continue;o.v+=src[i];o.cov+=D.cov[i];o.lng+=D.lng[i];o.est+=D.est[i]}
+ return o;
+}
+// Kennzeichen eines Zeitabschnitts: interpoliert, geschätzt (Zählerwechsel ohne Endstand), Teilabschnitt
+function bucket(o,lab){
+ if(o.cov<=0)return null;
+ return {v:o.v,days:o.cov/DAY,interp:o.lng>=o.cov*0.5,est:o.est>0,part:o.cov<o.span*0.99,lab};
+}
+function yearsOf(D){const a=new Date(D.first).getFullYear(),b=new Date(D.last).getFullYear(),o=[];for(let y=a;y<=b;y++)o.push(y);return o}
+function yearBuckets(D,y,gran,kwh){
+ const n=gran==='q'?4:12,step=gran==='q'?3:1,o=[];
+ for(let i=0;i<n;i++){
+  const s=new Date(y,i*step,1).getTime(),e=new Date(y,i*step+step,1).getTime();
+  o.push(bucket(sumRange(D,s,e,kwh),(gran==='q'?'Q'+(i+1):MON[i])+' '+y));
+ }
+ return o;
+}
+// Zeitraum aus Monaten 'JJJJ-MM' bis 'JJJJ-MM' (einschließlich)
+const ymParse=s=>{const m=String(s||'').match(/^(\d{4})-(\d{2})$/);return m?{y:+m[1],m:+m[2]-1}:null};
+const ymStr=(y,m)=>{const d=new Date(y,m,1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')};
+const ymShift=(s,k)=>{const p=ymParse(s);return ymStr(p.y,p.m+k)};
+function periodBuckets(D,from,to,kwh){
+ const a=ymParse(from),b=ymParse(to),o=[];if(!a||!b)return o;
+ const n=Math.min(36,(b.y-a.y)*12+b.m-a.m+1);
+ for(let i=0;i<n;i++){
+  const d=new Date(a.y,a.m+i,1),s=d.getTime(),e=new Date(a.y,a.m+i+1,1).getTime();
+  o.push(bucket(sumRange(D,s,e,kwh),MON[d.getMonth()]+' '+d.getFullYear()));
+ }
+ return o;
+}
+function periodLabel(from,to){
+ const a=ymParse(from),b=ymParse(to);if(!a||!b)return '';
+ if(a.y===b.y)return (a.m===b.m?MON[a.m]:MON[a.m]+'–'+MON[b.m])+' '+a.y;
+ return MON[a.m]+' '+a.y+' – '+MON[b.m]+' '+b.y;
+}
+// Kennzahlen eines Jahres: Summe, Tagesmittel, Veränderung zum gleichen Zeitraum des Vorjahres
+function yearKpi(D,y,kwh){
+ const ys=new Date(y,0,1).getTime(),ye=new Date(y+1,0,1).getTime(),cur=sumRange(D,ys,ye,kwh);
+ if(cur.cov<=0)return null;
+ const cs=Math.max(ys,D.first),ce=Math.min(ye,D.last);
+ const sh=t=>{const d=new Date(t);d.setFullYear(d.getFullYear()-1);return d.getTime()};
+ const prev=sumRange(D,sh(cs),sh(ce),kwh),ref=sumRange(D,cs,ce,kwh);
+ const full=prev.cov>=prev.span*0.99&&prev.v>0;
+ return {y,sum:cur.v,days:cur.cov/DAY,perDay:cur.v/(cur.cov/DAY),from:cs,to:ce,part:cur.cov<cur.span*0.99,
+  yoy:full?(ref.v-prev.v)/prev.v:null,interp:cur.lng>=cur.cov*0.5,interpShare:cur.lng/cur.cov,est:cur.est>0};
+}
+function periodKpi(D,from,to,kwh){
+ const a=ymParse(from),b=ymParse(to);if(!a||!b)return null;
+ const o=sumRange(D,new Date(a.y,a.m,1).getTime(),new Date(b.y,b.m+1,1).getTime(),kwh);
+ if(o.cov<=0)return null;
+ return {sum:o.v,days:o.cov/DAY,perDay:o.v/(o.cov/DAY),part:o.cov<o.span*0.99,interpShare:o.lng/o.cov,est:o.est>0};
+}
+// Achsenteilung
+function niceTicks(lo,hi,n){
+ if(hi<=lo)hi=lo+1;
+ const raw=(hi-lo)/(n||4),p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p,step=(f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p;
+ const a=Math.floor(lo/step)*step,b=Math.ceil(hi/step)*step,t=[];
+ for(let x=a;x<=b+step/2;x+=step)t.push(+x.toFixed(10));
+ return t;
+}
+// Feste Jahresfarben: jedes Jahr behält seine Farbe (12 Farben, im Wechsel)
+// Reihenfolge so gewählt, dass benachbarte Jahre deutlich verschieden sind (2023 Pink, 2024 Gelb, 2025 Blau, 2026 Grün)
+const YEAR_COL={dark:['#B08CF2','#4FD1E0','#FF6B61','#C9A27A','#B6E65A','#C3CAD3','#7CC8FF','#EC6FB0','#F2B21B','#3D8BFF','#43C463','#E8731A'],
+ light:['#7A52D6','#0E8FA3','#C62F26','#8F6A3D','#4F7A00','#5F6B78','#1B86C9','#C23E85','#A06E00','#1F63D8','#1F8F3F','#C95A0A']};
+const yearColor=(y,light)=>YEAR_COL[light?'light':'dark'][((y%12)+12)%12];
 // </logic>
 
 /* ---------- Konstanten ---------- */
@@ -473,11 +616,14 @@ const IC={
  photo:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>',
  warn:'<path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z"/><path d="M12 9v4M12 17h.01"/>',
  swap:'<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
+ chart:'<path d="M3 3v18h18"/><path d="M8 17v-5M13 17V8M18 17v-8"/>',
+ trend:'<path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-6"/>',
+ filter:'<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>',
  img:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>'
 };
 const ico=(n,c)=>'<svg class="ic '+(c||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[n]+'</svg>';
-const TABS=[['home','home','Übersicht'],['read','cam','Ablesen'],['hist','list','Verlauf'],['set','set','Einstellungen']];
-const TITLES={home:'Zählwerk',read:'Ablesen',hist:'Verlauf',set:'Einstellungen',setup:'Zähler einrichten'};
+const TABS=[['home','home','Übersicht'],['read','cam','Ablesen'],['hist','list','Verlauf'],['ana','chart','Auswertung'],['set','set','Einstellungen']];
+const TITLES={home:'Zählwerk',read:'Ablesen',hist:'Verlauf',ana:'Auswertung',set:'Einstellungen',setup:'Zähler einrichten'};
 
 /* ---------- Speicher ---------- */
 const KEY='zaehlwerk.v1';
@@ -515,7 +661,7 @@ function modal(html,collect){
   const d=$('#dlg');d.innerHTML=html;let done=false;
   const fin=v=>{if(done)return;done=true;let out=v;try{if(collect)out=collect(d,v)}catch(e){out=v}try{d.close()}catch(e){}d.onclick=null;d.onclose=null;res(out)};
   d.onclick=e=>{const b=e.target.closest('[data-val]');if(b)fin(b.dataset.val)};
-  d.onclose=()=>fin(null);
+  d.onclose=()=>{if(!d.open)fin(null)}; // verspätetes close-Ereignis eines vorherigen Dialogs ignorieren
   d.showModal();
  });
 }
@@ -653,7 +799,7 @@ function render(){
  const setup=VIEW==='setup';
  $('#tabs').style.display=setup?'none':'flex';
  $('#ttl').textContent=(VIEW==='setup'&&W&&W.step==='welcome')?APP.name:(TITLES[VIEW]||APP.name);
- $('#view').innerHTML=VIEW==='home'?viewHome():VIEW==='read'?viewRead():VIEW==='hist'?viewHist():VIEW==='set'?viewSet():viewSetup();
+ $('#view').innerHTML=VIEW==='home'?viewHome():VIEW==='read'?viewRead():VIEW==='hist'?viewHist():VIEW==='ana'?viewAna():VIEW==='set'?viewSet():viewSetup();
  $$('#tabs button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===VIEW?'page':'false'));
  if(CR.src){if($('#crop')){crBind($('#crop'));crDraw()}crPreview()}
 }
@@ -817,6 +963,180 @@ async function editReading(id){
  fillNumbers(S.meters,S.readings);save();render();toast('Gespeichert.');
 }
 
+/* ---------- Auswertung ---------- */
+let A=null;
+function anaInit(){
+ if(A)return;
+ const p=S.set.ana||{};
+ A={mid:null,mode:p.mode||'year',type:p.type||'bar',gran:p.gran||'m',metric:p.metric||'sum',kwh:!!p.kwh,years:null,pa:null,pb:null,open:false,sel:null};
+}
+function anaKeep(){S.set.ana={mode:A.mode,type:A.type,gran:A.gran,metric:A.metric,kwh:A.kwh};save()}
+const isLight=()=>document.documentElement.dataset.theme==='light';
+const seg=(act,cur,opts)=>'<div class="seg" role="group">'+opts.map(o=>'<button data-act="'+act+'" data-v="'+o[0]+'" aria-pressed="'+(cur===o[0])+'"'+(o[2]?' aria-label="'+o[2]+'"':'')+'>'+o[1]+'</button>').join('')+'</div>';
+const fmtVal=x=>x==null?'–':nf(x,Math.abs(x)>=100?0:Math.abs(x)>=10?1:2);
+const fmtPD=x=>nf(x,Math.abs(x)>=10?1:Math.abs(x)>=1?2:3);
+const fmtPct=p=>p==null?'–':(p>0?'+':p<0?'−':'±')+nf(Math.abs(p)*100,1)+' %';
+function anaDefaults(D){
+ const ys=yearsOf(D);
+ if(!A.years||!A.years.some(y=>ys.includes(y)))A.years=ys.slice(-3);
+ A.years=A.years.filter(y=>ys.includes(y)).sort((a,b)=>a-b);
+ if(!A.pb||!ymParse(A.pb.from)){
+  const l=new Date(D.last),end=new Date(D.last+DAY).getDate()===1?ymStr(l.getFullYear(),l.getMonth()):ymStr(l.getFullYear(),l.getMonth()-1);
+  A.pb={from:ymShift(end,-2),to:end};A.pa={from:ymShift(end,-14),to:ymShift(end,-12)};
+ }
+}
+// Diagramm als SVG: series=[{label,col,pts:[bucket|null]}], labels = Beschriftung der x-Achse
+function chartSvg(series,labels,type,metric,sel){
+ const W=340,H=196,L=40,R=6,T=10,B=20,pw=W-L-R,ph=H-T-B,n=labels.length;
+ const val=p=>p?(metric==='day'?p.v/p.days:p.v):null;
+ let mx=0,mn=0;series.forEach(s=>s.pts.forEach(p=>{const x=val(p);if(x!=null){mx=Math.max(mx,x);mn=Math.min(mn,x)}}));
+ const tk=niceTicks(mn,mx||1,4),y0=tk[0],y1=tk[tk.length-1],Y=v=>T+ph-(v-y0)/(y1-y0)*ph,gw=pw/n;
+ let h='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Diagramm"><defs>';
+ series.forEach((s,i)=>{h+='<pattern id="hx'+i+'" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><rect width="4" height="4" fill="'+s.col+'" fill-opacity=".22"/><rect width="1.8" height="4" fill="'+s.col+'"/></pattern>'});
+ h+='</defs>';
+ if(sel!=null&&sel<n)h+='<rect x="'+(L+sel*gw).toFixed(1)+'" y="'+T+'" width="'+gw.toFixed(1)+'" height="'+ph+'" rx="4" fill="var(--tx)" fill-opacity=".07"/>';
+ tk.forEach(t=>{const y=Y(t).toFixed(1);h+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"'+(t===0?' stroke-width="1.4"':'')+'/><text x="'+(L-5)+'" y="'+(+y+3.5)+'" text-anchor="end">'+fmtAxis(t)+'</text>'});
+ const step=n>18?3:n>12?2:1;
+ labels.forEach((l,i)=>{if(i%step===0)h+='<text x="'+(L+(i+.5)*gw).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle">'+esc(l)+'</text>'});
+ const ns=series.length||1;
+ if(type==='bar'){
+  const inner=gw*(ns>3?.86:.74),bw=inner/ns;
+  series.forEach((s,si)=>s.pts.forEach((p,i)=>{
+   const v=val(p);if(v==null)return;
+   const x=L+i*gw+(gw-inner)/2+si*bw,ya=Y(Math.max(v,0)),yb=Y(Math.min(v,0)),hh=Math.max(.8,yb-ya);
+   h+='<rect x="'+(x+.4).toFixed(1)+'" y="'+ya.toFixed(1)+'" width="'+Math.max(1,bw-.8).toFixed(1)+'" height="'+hh.toFixed(1)+'" rx="'+Math.min(2,bw/3).toFixed(1)+'" fill="'+(p.interp?'url(#hx'+si+')':s.col)+'"'+(p.part?' fill-opacity=".45"':'')+(p.interp?' stroke="'+s.col+'" stroke-width=".7"':'')+'/>';
+   if(p.est)h+=tri(x+bw/2,ya-4);
+  }));
+ }else{
+  series.forEach((s,si)=>{
+   const P=s.pts.map((p,i)=>{const v=val(p);return v==null?null:{x:L+(i+.5)*gw,y:Y(v),p}});
+   for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i];if(!a||!b)continue;
+    h+='<line x1="'+a.x.toFixed(1)+'" y1="'+a.y.toFixed(1)+'" x2="'+b.x.toFixed(1)+'" y2="'+b.y.toFixed(1)+'" stroke="'+s.col+'" stroke-width="2.2" stroke-linecap="round"'+(a.p.interp||b.p.interp?' stroke-dasharray="3 3"':'')+'/>'}
+   P.forEach(q=>{if(!q)return;h+='<circle cx="'+q.x.toFixed(1)+'" cy="'+q.y.toFixed(1)+'" r="2.8" fill="'+(q.p.interp?'var(--card)':s.col)+'" stroke="'+s.col+'" stroke-width="1.6"'+(q.p.part?' opacity=".5"':'')+'/>';if(q.p.est)h+=tri(q.x,q.y-7)});
+  });
+ }
+ for(let i=0;i<n;i++)h+='<rect x="'+(L+i*gw).toFixed(1)+'" y="0" width="'+gw.toFixed(1)+'" height="'+H+'" fill="transparent" data-act="anaPick" data-i="'+i+'" style="cursor:pointer"/>';
+ return h+'</svg>';
+}
+const tri=(x,y)=>'<path d="M'+x.toFixed(1)+' '+(y-3.5).toFixed(1)+'l3.2 5.2h-6.4z" fill="var(--warn)"/>';
+function fmtAxis(t){const a=Math.abs(t);return a>=100000?nf(t/1000,0)+' Tsd.':nf(t,a<1&&t!==0?((String(t).split('.')[1]||'').length>2?3:2):(a<10&&t%1?1:0))}
+function anaFolds(){
+ return '<details class="fold"><summary>So wird gerechnet</summary><p>Zwischen zwei Ablesungen wird der Verbrauch gleichmäßig auf die Tage verteilt. Daraus entstehen die Monats- und Jahreswerte. Echte Ablesungen werden nicht verändert.</p>'+
+  '<p><b>Schraffiert</b>: Für diesen Monat gibt es keine eigene Ablesung, der Wert ist aus den Ablesungen davor und danach verteilt (interpoliert).</p>'+
+  '<p><b>Blass</b>: Monat oder Quartal nur teilweise erfasst, am Anfang oder Ende der Aufzeichnung.</p>'+
+  '<p><b>Dreieck</b>: Zählerwechsel ohne bekannten Endstand des alten Zählers. Dessen Anteil ist geschätzt. Trage den Endstand im Verlauf nach, dann wird genau gerechnet.</p></details>';
+}
+function viewAna(){
+ anaInit();
+ if(!S.meters.length)return '<div class="card"><p>Noch keine Zähler.</p></div>';
+ if(!meterById(A.mid))A.mid=S.meters[0].id;
+ const m=meterById(A.mid),D=dailySeries(readingsOf(m.id),m.conv);
+ let h='<section class="card">'+pickRow('pickAna',m.id)+'<div class="pname">'+esc(m.name)+'</div></section>';
+ if(!D)return h+'<section class="card"><p class="mu">Für eine Auswertung braucht der Zähler mindestens zwei Ablesungen.</p></section>';
+ anaDefaults(D);
+ const canK=!!(m.conv&&m.conv.length),kwh=canK&&A.kwh,unit=kwh?'kWh':m.unit,light=isLight();
+ const unitTxt=unit+(A.metric==='day'?' pro Tag':'');
+ let series=[],labels=[];
+ if(A.mode==='year'){
+  labels=A.gran==='q'?['Q1','Q2','Q3','Q4']:MON.slice();
+  series=A.years.map(y=>({label:String(y),col:yearColor(y,light),pts:yearBuckets(D,y,A.gran,kwh)}));
+ }else{
+  const ca=yearColor(ymParse(A.pa.from).y,light);let cb=yearColor(ymParse(A.pb.from).y,light);
+  if(cb===ca)cb=yearColor(ymParse(A.pb.from).y+1,light);
+  const pa=periodBuckets(D,A.pa.from,A.pa.to,kwh),pb=periodBuckets(D,A.pb.from,A.pb.to,kwh),n=Math.max(pa.length,pb.length);
+  const ma=ymParse(A.pa.from).m,mb=ymParse(A.pb.from).m;
+  labels=Array.from({length:n},(_,i)=>ma===mb?MON[(ma+i)%12]:String(i+1));
+  series=[{label:periodLabel(A.pa.from,A.pa.to),col:ca,pts:pa},{label:periodLabel(A.pb.from,A.pb.to),col:cb,pts:pb}];
+ }
+ if(A.sel!=null&&A.sel>=labels.length)A.sel=null;
+ // Filterzeile
+ const fsum=A.mode==='year'?(A.years.length?A.years.join(', '):'kein Jahr')+(A.gran==='q'?', Quartale':', Monate'):series.map(s=>s.label).join(' gegen ');
+ let fp='';
+ if(A.open){
+  if(A.mode==='year'){
+   const ys=yearsOf(D),l=ys.slice(-3),pre=[[l.slice(-1),'Neuestes Jahr'],[l.slice(-2),'Mit Vorjahr'],[l,'Letzte drei Jahre']].filter((p,i)=>i===0||p[0].length>i);
+   fp+='<div class="flab">Schnellwahl</div><div class="chips">'+pre.map(p=>'<button class="chip sm" data-act="anaPreset" data-ys="'+p[0].join(',')+'">'+p[1]+'</button>').join('')+'</div>'+
+    '<div class="flab">Jahre</div><div class="chips">'+ys.map(y=>'<button class="chip sm" data-act="anaYear" data-y="'+y+'" aria-pressed="'+A.years.includes(y)+'" style="--mc:'+yearColor(y,light)+'"><span class="dot"></span>'+y+'</button>').join('')+'</div>'+
+    '<div class="flab">Einteilung</div>'+seg('anaGran',A.gran,[['m','Monate'],['q','Quartale']]);
+  }else{
+   const mi=(id,v)=>'<input type="month" id="'+id+'" value="'+esc(v)+'">';
+   fp+='<div class="flab"><span class="yd" style="--mc:'+series[0].col+'"></span>Zeitraum A</div><div class="mrow">'+mi('pa-f',A.pa.from)+'<span class="mu">bis</span>'+mi('pa-t',A.pa.to)+'</div>'+
+    '<div class="flab"><span class="yd" style="--mc:'+series[1].col+'"></span>Zeitraum B</div><div class="mrow">'+mi('pb-f',A.pb.from)+'<span class="mu">bis</span>'+mi('pb-t',A.pb.to)+'</div>'+
+    '<div class="chips" style="margin-top:8px"><button class="chip sm" data-act="anaSame">A = gleiche Monate ein Jahr vor B</button></div>';
+  }
+  fp+='<div class="flab">Werte</div>'+seg('anaMetric',A.metric,[['sum','Summe'],['day','Pro Tag']]);
+  if(m.unit==='m³'&&m.medium==='gas')fp+='<div class="flab">Einheit</div>'+(canK?seg('anaUnit',kwh?'k':'n',[['n','m³'],['k','kWh']]):'<button class="btn sec sm" data-act="anaConv">Umrechnung in kWh festlegen</button>');
+  fp='<div class="fpanel">'+fp+'</div>';
+ }
+ // Legende und Einzelwerte
+ const all=series.flatMap(s=>s.pts).filter(Boolean),has=k=>all.some(p=>p[k]);
+ const leg='<div class="legend">'+series.map(s=>'<span><i class="lg" style="--mc:'+s.col+'"></i>'+esc(s.label)+'</span>').join('')+
+  (has('interp')?'<span><i class="lg h"></i>interpoliert</span>':'')+(has('part')?'<span><i class="lg p"></i>unvollständig</span>':'')+(has('est')?'<span><i class="lgt"></i>geschätzt</span>':'')+'</div>';
+ let det;
+ if(A.sel!=null){
+  const vals=series.map(s=>{const p=s.pts[A.sel];if(!p)return '';const v=A.metric==='day'?p.v/p.days:p.v;
+   return '<span class="dv"><i class="yd" style="--mc:'+s.col+'"></i>'+esc(p.lab)+'<b>'+fmtVal(v)+'</b>'+((p.interp||p.est||p.part)?'<span class="mu">'+[p.interp?'interpoliert':'',p.est?'geschätzt':'',p.part?'unvollständig':''].filter(Boolean).join(', ')+'</span>':'')+'</span>'}).filter(Boolean);
+  det=vals.length?vals.join(''):'<span class="mu">Für diesen Abschnitt gibt es keine Werte.</span>';
+ }else det='<span class="mu">Tippe auf einen Monat, um die Werte zu sehen.</span>';
+ h+='<section class="card"><div class="atop">'+seg('anaMode',A.mode,[['year','Jahre'],['per','Zeiträume']])+seg('anaType',A.type,[['bar',ico('chart'),'Balken'],['line',ico('trend'),'Linie']])+'</div>'+
+  '<button class="fbtn" data-act="anaFilter" aria-expanded="'+A.open+'">'+ico('filter')+'<b>Filter</b><span class="fs">'+esc(fsum)+'</span><i class="chev" aria-hidden="true"></i></button>'+fp+
+  '<div class="cunit mu sm">'+esc(unitTxt)+'</div>'+chartSvg(series,labels,A.type,A.metric,A.sel)+leg+'<div class="adet">'+det+'</div>'+anaFolds()+'</section>';
+ // Kennzahlen
+ let rows='',head;
+ if(A.mode==='year'){
+  head='<tr><th>Jahr</th><th>Summe</th><th>Pro Tag</th><th>Vorjahr</th></tr>';
+  rows=A.years.map(y=>{const k=yearKpi(D,y,kwh);if(!k)return '';
+   const note=k.part?'<span class="mu sm"> '+(k.from>new Date(y,0,1).getTime()+DAY?'ab '+fmtDM(k.from):'bis '+fmtDM(k.to))+'</span>':'';
+   return '<tr><td><span class="yd" style="--mc:'+yearColor(y,light)+'"></span>'+y+note+'</td><td>'+fmtVal(k.sum)+(k.est?' ≈':'')+'</td><td>'+fmtPD(k.perDay)+'</td><td>'+fmtPct(k.yoy)+'</td></tr>'}).join('');
+ }else{
+  head='<tr><th>Zeitraum</th><th>Summe</th><th>Pro Tag</th><th>zu A</th></tr>';
+  const ka=periodKpi(D,A.pa.from,A.pa.to,kwh),kb=periodKpi(D,A.pb.from,A.pb.to,kwh);
+  rows=[[series[0],ka,null],[series[1],kb,ka&&kb&&ka.perDay>0?(kb.perDay-ka.perDay)/ka.perDay:null]].map(([s,k,d])=>'<tr><td><span class="yd" style="--mc:'+s.col+'"></span>'+esc(s.label)+'</td><td>'+(k?fmtVal(k.sum)+(k.est?' ≈':''):'–')+'</td><td>'+(k?fmtPD(k.perDay):'–')+'</td><td>'+(s===series[0]?'':fmtPct(d))+'</td></tr>').join('');
+ }
+ h+='<section class="card"><h2>Kennzahlen <span class="mu sm" style="font-weight:500">in '+esc(unit)+'</span></h2><div class="tscroll"><table class="kpi">'+head+rows+'</table></div>'+
+  '<details class="fold"><summary>Was die Zahlen bedeuten</summary><p><b>Summe</b>: Verbrauch im Jahr oder Zeitraum, soweit Ablesungen vorliegen. ≈ heißt: enthält einen geschätzten Anteil.</p><p><b>Pro Tag</b>: Summe geteilt durch die erfassten Tage.</p>'+
+  (A.mode==='year'?'<p><b>Vorjahr</b>: Veränderung gegenüber demselben Zeitraum im Jahr davor. Bei angefangenen Jahren zählen nur die erfassten Tage, zum Beispiel 1. Januar bis 19. August.</p>':'<p><b>zu A</b>: Veränderung des Verbrauchs pro Tag von Zeitraum B gegenüber A. So bleiben verschieden lange Zeiträume vergleichbar.</p>')+
+  (kwh?'<p><b>kWh</b>: m³ × Brennwert × Zustandszahl, wie in den Zählereinstellungen hinterlegt.</p>':'')+'</details></section>';
+ return h;
+}
+const fmtDM=t=>new Date(t).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit'});
+function anaMonth(id,val){
+ const k=id.slice(0,2),key=id.endsWith('-f')?'from':'to';if(!ymParse(val))return;
+ const p={...A[k],[key]:val};
+ if(p.from>p.to){if(key==='from')p.to=p.from;else p.from=p.to}
+ const a=ymParse(p.from),b=ymParse(p.to),n=(b.y-a.y)*12+b.m-a.m+1;
+ if(n>24){if(key==='from')p.to=ymShift(p.from,23);else p.from=ymShift(p.to,-23);toast('Ein Zeitraum umfasst höchstens 24 Monate.')}
+ A[k]=p;A.sel=null;render();
+}
+// Gas: Brennwert und Zustandszahl je Zeitraum
+async function editConv(m){
+ const dIn=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
+ const rs=readingsOf(m.id);
+ let rows=(m.conv||[]).map(c=>({...c})).sort((a,b)=>a.from-b.from),err='';
+ if(!rows.length)rows=[{from:rs.length?new Date(new Date(rs[0].t).setHours(0,0,0,0)).getTime():Date.now(),hs:null,z:null}];
+ const nv=x=>x==null||!isFinite(x)?'':String(x).replace('.',',');
+ for(;;){
+  const body=rows.map((r,i)=>'<div class="convrow">'+(rows.length>1?'<div class="crh"><b>Zeitraum '+(i+1)+'</b><button class="btn ghost sm" data-val="del:'+i+'">Entfernen</button></div>':'')+
+   '<label class="fld">Gültig ab<input type="date" data-cf="'+i+'" value="'+(isFinite(r.from)?dIn(r.from):'')+'"></label>'+
+   '<div class="stack two"><label class="fld">Brennwert (kWh/m³)<input inputmode="decimal" data-ch="'+i+'" value="'+nv(r.hs)+'" placeholder="z. B. 11,2"></label><label class="fld">Zustandszahl<input inputmode="decimal" data-cz="'+i+'" value="'+nv(r.z)+'" placeholder="z. B. 0,95"></label></div></div>').join('');
+  const res=await modal('<h3>Gas in kWh umrechnen</h3><p class="mu sm">kWh = m³ × Brennwert × Zustandszahl. Beide Werte stehen auf der Gasrechnung. Ändern sie sich, lege ab dem neuen Datum einen weiteren Zeitraum an. Der erste Zeitraum gilt auch für die Zeit davor.</p>'+body+
+   (err?'<p class="msg bad">'+esc(err)+'</p>':'')+'<button class="btn sec sm wide" data-val="add">'+ico('plus')+' Zeitraum hinzufügen</button>'+
+   '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Abbrechen</button>'+(m.conv&&m.conv.length?'<button class="btn danger" data-val="clear">Löschen</button>':'')+'</div>',
+   (d,act)=>({act,rows:rows.map((_,i)=>{const dv=$('[data-cf="'+i+'"]',d).value,q=dv.split('-').map(Number);return {from:dv?new Date(q[0],q[1]-1,q[2]).getTime():NaN,hs:parseDeNum($('[data-ch="'+i+'"]',d).value),z:parseDeNum($('[data-cz="'+i+'"]',d).value)}})}));
+  if(!res||!res.act||res.act==='close')return;
+  rows=res.rows;err='';
+  if(res.act==='add'){const l=rows[rows.length-1];rows.push({from:new Date(new Date().setHours(0,0,0,0)).getTime(),hs:l.hs,z:l.z});continue}
+  if(res.act.startsWith('del:')){rows.splice(+res.act.slice(4),1);continue}
+  if(res.act==='clear'){delete m.conv;A&&(A.kwh=false);save();render();return toast('Umrechnung gelöscht.')}
+  if(rows.some(r=>!isFinite(r.from))){err='Bitte bei jedem Zeitraum ein Datum eintragen.';continue}
+  if(rows.some(r=>r.hs==null||r.hs<6||r.hs>14)){err='Der Brennwert liegt üblicherweise zwischen 8 und 13 kWh/m³.';continue}
+  if(rows.some(r=>r.z==null||r.z<.7||r.z>1.1)){err='Die Zustandszahl liegt üblicherweise zwischen 0,85 und 1.';continue}
+  if(new Set(rows.map(r=>r.from)).size<rows.length){err='Zwei Zeiträume haben dasselbe Datum.';continue}
+  m.conv=rows.sort((a,b)=>a.from-b.from).map(r=>({from:r.from,hs:r.hs,z:r.z}));
+  if(A)A.kwh=true;save();render();return toast('Umrechnung gespeichert.');
+ }
+}
+
 /* ---------- Einstellungen ---------- */
 let SETP='main';
 const srow=(p,icon,t,sub)=>'<button class="srow" data-act="setPage" data-p="'+p+'"><span class="si">'+ico(icon)+'</span><span class="sx"><b>'+t+'</b><span class="mu sm">'+sub+'</span></span><span class="mu sch" aria-hidden="true">›</span></button>';
@@ -871,6 +1191,7 @@ async function editMeter(id){
   stp('pre','Ziffern vor dem Komma (schwarz)','em-pre')+stp('dec','Ziffern nach dem Komma (rot)','em-dec')+
   '<label id="em-re" class="fld chk" hidden><input type="checkbox" id="em-reint"><span>Komma verschieben: vorhandene Ziffern neu deuten (nur bei gleicher Gesamtzahl der Stellen)</span></label>'+
   '<p id="em-ex" class="mu sm"></p><p class="mu sm">Gespeicherte Werte bleiben genau erhalten. Es ändert sich nur, wie viele Nachkommastellen angezeigt und eingegeben werden.</p>'+
+  (m.medium==='gas'?'<div class="fld" style="margin-bottom:0">Umrechnung in kWh</div><p class="mu sm" style="margin:4px 0">'+(m.conv&&m.conv.length?m.conv.length+(m.conv.length===1?' Zeitraum':' Zeiträume')+', zuletzt Brennwert '+String(m.conv[m.conv.length-1].hs).replace('.',',')+' und Zustandszahl '+String(m.conv[m.conv.length-1].z).replace('.',','):'Noch nicht festgelegt')+'</p><button class="btn sec sm" data-val="conv">Brennwert und Zustandszahl</button>':'')+
   '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>',
   (dd,v)=>({act:v,name:$('#em-n',dd).value.trim(),nr:$('#em-nr',dd).value.trim(),unit:$('#em-u',dd)?$('#em-u',dd).value.trim():null,col:EM.col,pre:EM.pre,dec:EM.dec,reint:EM.reint}));
  emLive();
@@ -895,7 +1216,9 @@ async function editMeter(id){
   }
   m.pre=res.pre;m.dec=res.dec;R.digits=[];
  }
- m.name=res.name;m.number=res.nr;m.col=res.col;if(res.unit!==null)m.unit=res.unit;save();render();toast('Gespeichert.');
+ m.name=res.name;m.number=res.nr;m.col=res.col;if(res.unit!==null)m.unit=res.unit;save();render();
+ if(res.act==='conv')return editConv(m);
+ toast('Gespeichert.');
 }
 // ---------- Erinnerungen ----------
 let RM=null;
@@ -1077,6 +1400,18 @@ const ACT={
  readMeter:el=>{R.mid=el.dataset.id;rDigits();R.dt='';R.photoNote='';go('read')},
  pickMeter:el=>{R.mid=el.dataset.id;rDigits();render()},
  pickHist:el=>{H.mid=el.dataset.id;render()},
+ pickAna:el=>{A.mid=el.dataset.id;A.sel=null;render()},
+ anaMode:el=>{A.mode=el.dataset.v;A.sel=null;anaKeep();render()},
+ anaType:el=>{A.type=el.dataset.v;anaKeep();render()},
+ anaGran:el=>{A.gran=el.dataset.v;A.sel=null;anaKeep();render()},
+ anaMetric:el=>{A.metric=el.dataset.v;anaKeep();render()},
+ anaUnit:el=>{A.kwh=el.dataset.v==='k';anaKeep();render()},
+ anaFilter:()=>{A.open=!A.open;render()},
+ anaYear:el=>{const y=+el.dataset.y,i=A.years.indexOf(y);if(i>=0){if(A.years.length===1)return toast('Mindestens ein Jahr bleibt ausgewählt.');A.years.splice(i,1)}else{if(A.years.length>=6)return toast('Höchstens sechs Jahre gleichzeitig.');A.years.push(y)}A.years.sort((a,b)=>a-b);render()},
+ anaPreset:el=>{A.years=el.dataset.ys.split(',').map(Number);render()},
+ anaPick:el=>{const i=+el.dataset.i;A.sel=A.sel===i?null:i;render()},
+ anaSame:()=>{A.pa={from:ymShift(A.pb.from,-12),to:ymShift(A.pb.to,-12)};A.sel=null;render()},
+ anaConv:()=>editConv(meterById(A.mid)),
  camera:()=>$('#fcam').click(),
  library:()=>$('#flib').click(),
  pastePhoto:()=>pastePhoto(),
@@ -1117,6 +1452,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
  if(e.target.id==='rm-kind'&&RM)rmLive();
  if(e.target.id==='em-reint'&&EM){EM.reint=e.target.checked;emLive()}
+ if(/^p[ab]-[ft]$/.test(e.target.id)&&A)anaMonth(e.target.id,e.target.value);
 });
 document.addEventListener('input',e=>{
  const t=e.target;
