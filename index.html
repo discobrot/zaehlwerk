@@ -188,11 +188,26 @@ table.kpi td{padding:8px 4px;border-top:1px solid var(--line);text-align:right;w
 .convrow{border-top:1px solid var(--line);padding-top:4px;margin-top:6px}
 .crh{display:flex;justify-content:space-between;align-items:center}.crh .btn{min-height:34px;color:var(--bad)}
 @media (prefers-reduced-motion:reduce){.chev,details.fold summary::before{transition:none}}
+.hchip{margin-left:auto;display:inline-flex;align-items:center;gap:6px;max-width:52%;min-height:34px;padding:0 12px;border-radius:17px;border:1px solid var(--line);background:var(--glass);color:var(--tx);font:600 13.5px system-ui,-apple-system,sans-serif;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.hchip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hchip .ic{color:var(--pri)}
+details.yr{padding:0;overflow:hidden}
+details.yr summary{list-style:none;display:flex;align-items:center;gap:12px;padding:11px 14px;cursor:pointer;min-height:54px}
+details.yr summary::-webkit-details-marker{display:none}
+.yt{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}
+.ym{flex:1;display:flex;flex-direction:column;align-items:flex-end;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:14px}
+details.yr .chev{border-color:var(--mu)}details.yr[open] .chev{transform:rotate(-135deg);margin-bottom:-3px}
+.ybody{padding:0 14px 8px;border-top:1px solid var(--line)}
+.hmon{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-left:2px;font-size:12.5px;font-weight:650;color:var(--mu);min-height:30px}
+.hmon+.item{border-top:0}
+.hdel{border:0;background:transparent;color:var(--mu);min-width:40px;min-height:32px;border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.hgap{display:flex;justify-content:space-between;margin:6px 0;padding:6px 10px;border:1px dashed color-mix(in srgb,var(--warn) 50%,transparent);border-radius:10px;font-size:12.5px;color:var(--mu)}
+.hgap span:last-child,.gapn{color:var(--warn)}
+.ydel{width:100%;color:var(--bad);margin-top:6px}
 </style>
 </head>
 <body>
 <div id="app">
-  <header class="top"><div class="logo" aria-hidden="true"><i>0</i><i>7</i><i>6</i></div><h1 id="ttl">Zählwerk</h1></header>
+  <header class="top"><div class="logo" aria-hidden="true"><i>0</i><i>7</i><i>6</i></div><h1 id="ttl">Zählwerk</h1><button id="hbtn" class="hchip" data-act="homes" hidden></button></header>
   <main id="view"></main>
 </div>
 <nav id="tabs" aria-label="Hauptnavigation"><div>
@@ -209,7 +224,7 @@ table.kpi td{padding:8px 4px;border-top:1px solid var(--line);text-align:right;w
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.4.0'};
+const APP={name:'Zählwerk',version:'0.5.0'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -413,13 +428,13 @@ function parseDeDate(x){
  return m?new Date(+m[1],m[2]-1,+m[3],+(m[4]||12),+(m[5]||0)).getTime():null;
 }
 function parseCsvReadings(text){
- const rows=[],bad=[];let col={n:0,d:1,s:2,nr:-1};
+ const rows=[],bad=[];let col={n:0,d:1,s:2,nr:-1,e:-1,a:-1};
  String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).forEach((ln,i)=>{
   if(!ln.trim())return;
   const c=ln.split(/[;\t]/);
   if(i===0&&/stand/i.test(ln)&&/datum/i.test(ln)){
    const h=c.map(x=>x.trim().toLowerCase()),f=re=>h.findIndex(x=>re.test(x));
-   col={n:Math.max(0,f(/^z(ä|ae)hler$|^name$/)),d:f(/datum/),s:f(/^stand/),nr:f(/nummer|^nr/)};
+   col={n:Math.max(0,f(/^z(ä|ae)hler$|^name$/)),d:f(/datum/),s:f(/^stand/),nr:f(/nummer|^nr/),e:f(/endstand/),a:f(/anfangsstand/)};
    if(col.d<0)col.d=1;if(col.s<0)col.s=2;
    return;
   }
@@ -427,7 +442,9 @@ function parseCsvReadings(text){
   const t=parseDeDate(c[col.d]),v=parseDeNum(c[col.s]);
   if(t==null||v==null){if(i>0)bad.push(i+1);return}
   const nr=col.nr>=0&&c[col.nr]?String(c[col.nr]).trim():'',name=String(c[col.n]).trim();
-  rows.push(nr?{name,t,v,nr}:{name,t,v});
+  const row=nr?{name,t,v,nr}:{name,t,v},ev=col.e>=0?parseDeNum(c[col.e]):null,av=col.a>=0?parseDeNum(c[col.a]):null;
+  if(ev!=null)row.end=ev;if(av!=null)row.start=av;
+  rows.push(row);
  });
  return {rows,bad};
 }
@@ -438,8 +455,9 @@ function mergeReadings(meters,readings,rows,newId){
   const m=find(r.name);
   if(!m){unknown.add(r.name);continue}
   const ex=readings.find(x=>x.m===m.id&&Math.abs(x.t-r.t)<600000);
-  if(ex){dup.push(r);if(r.nr&&(!ex.nr||ex.nrAuto)){ex.nr=r.nr;delete ex.nrAuto;numbers++}continue}
+  if(ex){dup.push(r);if(r.nr&&(!ex.nr||ex.nrAuto)){ex.nr=r.nr;delete ex.nrAuto;numbers++}if(r.end!=null&&ex.end==null){ex.w=1;ex.end=r.end;ex.start=r.start!=null?r.start:(ex.start||0);numbers++}continue}
   const nr={id:newId(),m:m.id,t:r.t,v:r.v};if(r.nr)nr.nr=r.nr;
+  if(r.end!=null||r.start!=null){nr.w=1;if(r.end!=null)nr.end=r.end;nr.start=r.start!=null?r.start:0}
   readings.push(nr);added.push(nr);
  }
  return {added,dup,unknown:[...unknown],numbers};
@@ -476,15 +494,15 @@ function fillNumbers(meters,readings){
 }
 function buildCsv(meters,readings){
  const z=n=>String(n).padStart(2,'0'),fd=t=>{const d=new Date(t);return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes())};
- const L=['Zähler;Datum;Stand;Zählernummer;Einheit;Verbrauch;Tage'];
+ const L=['Zähler;Datum;Stand;Zählernummer;Einheit;Verbrauch;Tage;Endstand alt;Anfangsstand neu'];
  for(const m of meters){
   const rs=readings.filter(r=>r.m===m.id).sort((a,b)=>a.t-b.t),by=new Map(intervalsOf(rs).map(x=>[x.b.id,x]));
-  for(const r of rs){const x=by.get(r.id);L.push([m.name,fd(r.t),fmtValue(r.v,m.pre,m.dec),r.nr||'',m.unit,x?String(+x.cons.toFixed(3)).replace('.',','):'',x?String(Math.round(x.days)):''].join(';'))}
+  for(const r of rs){const x=by.get(r.id);L.push([m.name,fd(r.t),fmtValue(r.v,m.pre,m.dec),r.nr||'',m.unit,x?String(+x.cons.toFixed(3)).replace('.',','):'',x?String(Math.round(x.days)):'',r.w&&r.end!=null?fmtValue(r.end,m.pre,m.dec):'',r.w?fmtValue(r.start||0,m.pre,m.dec):''].join(';'))}
  }
  return '\uFEFF'+L.join('\r\n');
 }
 // ---- Auswertung: Tagesverteilung, Monate, Jahre ----
-const LONG_DAYS=40; // längere Intervalle gelten als interpoliert
+const LONG_DAYS=40; // längere Intervalle (fehlende Monate) werden simuliert
 const MON=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
 // Umrechnungsfaktor (kWh je m³) zum Zeitpunkt t; der erste Zeitraum gilt auch rückwirkend
 function convAt(conv,t){
@@ -493,21 +511,38 @@ function convAt(conv,t){
  for(const x of s)if(x.from<=t)c=x;
  return c.hs*c.z;
 }
-// Jedes Intervall wird gleichmäßig auf seine Zeit verteilt (= lineare Interpolation der Stände)
-function dailySeries(rs,conv){
+// Tagesverteilung: kurze Intervalle (Monatsablesung) gleichmäßig. Lange Intervalle (fehlende Monate) werden nach dem
+// typischen Monatsverlauf verteilt: Gewicht je Tag = mittlerer Tagesverbrauch desselben Kalendermonats aus allen Jahren
+// mit echten Werten. Die Summe zwischen zwei echten Ablesungen bleibt dabei exakt erhalten.
+function dailySeries(rs,conv,flat){
  rs=[...rs].sort((a,b)=>a.t-b.t);
  if(rs.length<2)return null;
  const f=new Date(rs[0].t),y0=f.getFullYear(),m0=f.getMonth(),d0=f.getDate(),last=rs[rs.length-1].t,st=[];
  for(let i=0;;i++){const t=new Date(y0,m0,d0+i).getTime();st.push(t);if(t>last)break}
  const n=st.length-1,v=new Float64Array(n),k=new Float64Array(n),cov=new Float64Array(n),lng=new Float64Array(n),est=new Float64Array(n);
- let j=0;
+ let j=0;const longs=[];
  for(const x of intervalsOf(rs)){
   const a=x.a.t,b=x.b.t;if(b<=a)continue;
-  const rate=x.cons/(b-a),long=x.days>LONG_DAYS;
+  const rate=x.cons/(b-a),long=x.days>LONG_DAYS,pc=[];
   while(j<n-1&&st[j+1]<=a)j++;
   for(let i=j;i<n&&st[i]<b;i++){
    const s=Math.max(a,st[i]),e=Math.min(b,st[i+1]);if(e<=s)continue;
-   const ms=e-s;v[i]+=rate*ms;cov[i]+=ms;if(long)lng[i]+=ms;if(x.est)est[i]+=ms;
+   const ms=e-s;v[i]+=rate*ms;cov[i]+=ms;if(long){lng[i]+=ms;pc.push([i,ms])}if(x.est)est[i]+=ms;
+  }
+  if(long)longs.push({cons:x.cons,rate,pc});
+ }
+ if(!flat&&longs.length){
+  // Profil: mittlerer Tagesverbrauch je Kalendermonat aus vollständig gemessenen Monaten
+  const agg=new Map();
+  for(let i=0;i<n;i++){const d=new Date(st[i]),key=d.getFullYear()*12+d.getMonth();let o=agg.get(key);if(!o){o={mo:d.getMonth(),v:0,cov:0,bad:0,days:0};agg.set(key,o)}o.v+=v[i];o.cov+=cov[i];o.days++;if(lng[i]>0||est[i]>0)o.bad=1}
+  const acc=Array.from({length:12},()=>[]);
+  for(const [key,o] of agg){const md=new Date(Math.floor(key/12),key%12+1,0).getDate();if(!o.bad&&o.days>=md&&o.cov>=(md-0.05)*DAY)acc[o.mo].push(o.v/(o.cov/DAY))}
+  const prof=acc.map(a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null);
+  for(const L of longs){
+   let W=0,okp=true;
+   for(const [i,ms] of L.pc){const p=prof[new Date(st[i]).getMonth()];if(p==null||p<0){okp=false;break}W+=p*ms}
+   if(!okp||!(W>0))continue;
+   for(const [i,ms] of L.pc){const p=prof[new Date(st[i]).getMonth()];v[i]+=L.cons*p*ms/W-L.rate*ms}
   }
  }
  const hasK=!!(conv&&conv.length);
@@ -619,6 +654,8 @@ const IC={
  chart:'<path d="M3 3v18h18"/><path d="M8 17v-5M13 17V8M18 17v-8"/>',
  trend:'<path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-6"/>',
  filter:'<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>',
+ archive:'<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
+ trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/>',
  img:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>'
 };
 const ico=(n,c)=>'<svg class="ic '+(c||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[n]+'</svg>';
@@ -628,13 +665,20 @@ const TITLES={home:'Zählwerk',read:'Ablesen',hist:'Verlauf',ana:'Auswertung',se
 /* ---------- Speicher ---------- */
 const KEY='zaehlwerk.v1';
 const blank=()=>({v:1,meters:[],readings:[],set:{theme:'dark',themeV:1},remind:[]});
-function migrate(o){if(!Array.isArray(o.remind))o.remind=[];try{fillNumbers(o.meters,o.readings)}catch(e){}o.set=o.set||{};if(!o.set.themeV){o.set.theme='dark';o.set.themeV=1}if(!o.set.theme)o.set.theme='dark';return o}
+function migrate(o){
+ if(!Array.isArray(o.remind))o.remind=[];try{fillNumbers(o.meters,o.readings)}catch(e){}o.set=o.set||{};if(!o.set.themeV){o.set.theme='dark';o.set.themeV=1}if(!o.set.theme)o.set.theme='dark';
+ // Haushalte: der aktive Haushalt liegt in meters/readings/remind, die anderen tragen ihre Daten selbst
+ if(!Array.isArray(o.homes)||!o.homes.length){o.homes=[{id:'h'+uid(),name:'Zuhause',created:Date.now()}];o.home=o.homes[0].id}
+ if(!o.homes.some(h=>h.id===o.home))o.home=o.homes[0].id;
+ for(const h of o.homes){if(h.id===o.home){delete h.meters;delete h.readings;delete h.remind}else{h.meters=h.meters||[];h.readings=h.readings||[];h.remind=h.remind||[];try{fillNumbers(h.meters,h.readings)}catch(e){}}}
+ return o}
+const packState=()=>({...S,homes:S.homes.map(h=>h.id===S.home?{id:h.id,name:h.name,created:h.created,...(h.arch?{arch:1}:{})}:h)});
 function load(){
  try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&o.v&&Array.isArray(o.meters)&&Array.isArray(o.readings))return migrate(o)}catch(e){}
  return blank();
 }
 let S=load();
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){toast('Speichern nicht möglich: '+e.message);return false}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(packState()));return true}catch(e){toast('Speichern nicht möglich: '+e.message);return false}}
 const DB={
  db:null,
  open(){return new Promise(res=>{try{const r=indexedDB.open('zaehlwerk',1);r.onupgradeneeded=()=>r.result.createObjectStore('photos');r.onsuccess=()=>{DB.db=r.result;res(true)};r.onerror=()=>res(false)}catch(e){res(false)}})},
@@ -791,13 +835,14 @@ function photoEditor(){
 /* ---------- Zustand und Router ---------- */
 let VIEW='home';
 let R={mid:null,digits:[],dt:'',photoNote:'',scan:'',scanMsg:'',helpOpen:false};
-let H={mid:null};
+let H={mid:null,open:null};
 let W=null;
 const curMeter=()=>meterById(R.mid)||S.meters[0];
 function go(v){VIEW=v;render();window.scrollTo(0,0)}
 function render(){
  const setup=VIEW==='setup';
  $('#tabs').style.display=setup?'none':'flex';
+ const hb=$('#hbtn'),ho=homeOf();hb.hidden=setup||(S.homes.length<2&&!ho.arch);hb.innerHTML=ico(ho.arch?'archive':'home','s')+'<span>'+esc(ho.name)+'</span>';
  $('#ttl').textContent=(VIEW==='setup'&&W&&W.step==='welcome')?APP.name:(TITLES[VIEW]||APP.name);
  $('#view').innerHTML=VIEW==='home'?viewHome():VIEW==='read'?viewRead():VIEW==='hist'?viewHist():VIEW==='ana'?viewAna():VIEW==='set'?viewSet():viewSetup();
  $$('#tabs button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===VIEW?'page':'false'));
@@ -820,7 +865,7 @@ function spark(vals){
 let DUE=new Set();
 function tile(m){
  const rs=readingsOf(m.id),last=rs[rs.length-1],iv=intervalsOf(rs),li=iv[iv.length-1];
- const overdue=(last&&Date.now()-last.t>32*DAY)||DUE.has(m.id);
+ const overdue=!RO()&&((last&&Date.now()-last.t>32*DAY)||DUE.has(m.id));
  let info;
  if(!last)info='Noch keine Ablesung';
  else if(!li)info='Erster Stand gespeichert';
@@ -835,6 +880,7 @@ function tile(m){
 function viewHome(){
  if(!S.meters.length)return '<div class="card"><p>Noch kein Zähler angelegt.</p><button class="btn" data-act="addMeter">'+ico('plus')+' Zähler einrichten</button></div>';
  const now=Date.now();let h='';
+ if(RO()){DUE=new Set();return '<div class="banner">'+ico('archive')+'<div><b>„'+esc(homeOf().name)+'“ ist archiviert.</b> Verlauf und Auswertung sind lesbar, Änderungen gesperrt.</div></div>'+S.meters.map(tile).join('')}
  DUE=dueIds(S.remind,S.meters.map(m=>m.id),S.readings,now);
  const due=S.meters.filter(m=>{const rs=readingsOf(m.id);return DUE.has(m.id)||(rs.length&&now-rs[rs.length-1].t>32*DAY)});
  if(due.length)h+='<div class="banner">'+ico('warn')+'<div><b>Ablesung fällig:</b> '+due.map(m=>esc(m.name)).join(', ')+'</div></div>';
@@ -861,6 +907,7 @@ function pickRow(act,sel){
  return '<div class="picker">'+S.meters.map(x=>'<button class="pick" data-act="'+act+'" data-id="'+x.id+'" aria-label="'+esc(x.name)+'" aria-pressed="'+(x.id===sel)+'" style="--mc:var(--c-'+x.col+')">'+ico(MEDIA[x.medium].icon)+'</button>').join('')+'</div>';
 }
 function viewRead(){
+ if(RO())return '<div class="card"><p>„'+esc(homeOf().name)+'“ ist archiviert. Ablesen geht nur in einem aktiven Haushalt.</p><button class="btn sec" data-act="homes">Haushalt wechseln</button></div>';
  if(!S.meters.length)return '<div class="card"><p>Lege zuerst einen Zähler an.</p><button class="btn" data-act="addMeter">Zähler einrichten</button></div>';
  if(!meterById(R.mid)){R.mid=S.meters[0].id;rDigits()}
  if(!R.digits.length)rDigits();
@@ -925,12 +972,36 @@ function viewHist(){
  if(!S.meters.length)return '<div class="card"><p>Noch keine Zähler.</p></div>';
  if(!meterById(H.mid))H.mid=S.meters[0].id;
  const m=meterById(H.mid),rs=readingsOf(m.id),iv=intervalsOf(rs),byB=new Map(iv.map(x=>[x.b.id,x]));
- const rows=[...rs].reverse().map(r=>{
+ let h='<section class="card">'+pickRow('pickHist',m.id)+'<div class="pname">'+esc(m.name)+'</div></section>';
+ if(!rs.length)return h+'<section class="card"><p class="mu">Noch keine Ablesungen.</p></section>';
+ const row=r=>{
   const k=rs.indexOf(r),pv=rs[k-1],showNr=r.nr&&(!pv||pv.nr!==r.nr);
   const x=byB.get(r.id),d=x?'+'+nf(x.cons,cd(m))+' '+esc(m.unit)+' · '+Math.round(x.days)+' Tage'+(x.est?' (geschätzt)':''):'Erster Stand';
   return '<button class="item" data-act="editReading" data-id="'+r.id+'"><div><b class="mono">'+fmtValue(r.v,m.pre,m.dec)+'</b><div class="mu sm">'+fmtFull(r.t)+(showNr?' · Nr. '+esc(r.nr):'')+'</div></div><div class="mu sm right">'+d+(r.photo?' '+ico('photo','s'):'')+(r.w?' '+ico('swap','s'):'')+'</div></button>';
- }).join('');
- return '<section class="card">'+pickRow('pickHist',m.id)+'<div class="pname">'+esc(m.name)+'</div></section><section class="card" style="padding:6px 14px">'+(rows||'<p class="mu" style="padding:10px 0">Noch keine Ablesungen.</p>')+'</section>';
+ };
+ const mk=t=>{const d=new Date(t);return d.getFullYear()*12+d.getMonth()},now=new Date();
+ const start=mk(rs[0].t),last=mk(rs[rs.length-1].t),end=RO()?last:Math.max(last,now.getFullYear()*12+now.getMonth());
+ const by=new Map();rs.forEach(r=>{const k=mk(r.t);if(!by.has(k))by.set(k,[]);by.get(k).push(r)});
+ const D=dailySeries(rs,null);
+ if(!H.open)H.open=new Set([Math.floor(end/12)]);
+ for(let y=Math.floor(end/12);y>=Math.floor(start/12);y--){
+  let body='',cnt=0,gaps=0,run=[];
+  const flush=()=>{if(!run.length)return;const hi=run[0],lo=run[run.length-1];
+   body+='<div class="hgap"><span>'+(run.length===1?MONF[hi]:MONF[lo]+' bis '+MONF[hi])+'</span><span>'+(run.length===1?'keine Ablesung':run.length+' Monate ohne Ablesung')+'</span></div>';run=[]};
+  for(let mo=11;mo>=0;mo--){
+   const k=y*12+mo;if(k>end||k<start)continue;
+   const list=by.get(k);
+   if(!list){gaps++;run.push(mo);continue}
+   flush();
+   cnt+=list.length;
+   body+='<div class="hmon"><span>'+MONF[mo]+'</span>'+(RO()?'':'<button class="hdel" data-act="delMonth" data-y="'+y+'" data-mo="'+mo+'" aria-label="Ablesungen '+MONF[mo]+' '+y+' löschen">'+ico('trash','s')+'</button>')+'</div>'+list.slice().reverse().map(row).join('');
+  }
+  flush();
+  const c=D?sumRange(D,new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime()):null;
+  h+='<details class="card yr" data-y="'+y+'"'+(H.open.has(y)?' open':'')+'><summary><span class="yt">'+y+'</span><span class="ym"><span>'+(c&&c.cov>0?(c.lng>0?'≈ ':'')+fmtAuto(c.v)+' '+esc(m.unit):'')+'</span><span class="mu sm">'+cnt+(cnt===1?' Ablesung':' Ablesungen')+(gaps?', <span class="gapn">'+gaps+(gaps===1?' Lücke':' Lücken')+'</span>':'')+'</span></span><i class="chev" aria-hidden="true"></i></summary>'+
+   '<div class="ybody">'+body+(cnt&&!RO()?'<button class="btn ghost sm ydel" data-act="delYear" data-y="'+y+'">'+ico('trash','s')+' Alle Ablesungen '+y+' löschen</button>':'')+'</div></details>';
+ }
+ return h;
 }
 async function editReading(id){
  const r=S.readings.find(x=>x.id===id);if(!r)return;const m=meterById(r.m);
@@ -941,7 +1012,7 @@ async function editReading(id){
   '<label class="fld">Zählerstand<input id="ed-v" inputmode="decimal" value="'+fmtValue(r.v,m.pre,m.dec)+'"></label>'+
   '<label class="fld">Zählernummer<input id="ed-nr" autocomplete="off" value="'+esc(r.nr||'')+'"></label>'+
   (r.w?'<div class="fld" style="margin-bottom:2px"><b>Zählerwechsel</b></div><p class="mu sm">Trage den Endstand des alten Zählers ein, wenn du ihn kennst (zum Beispiel aus der Abrechnung). Ohne Endstand wird der Verbrauch dieses Zeitraums geschätzt.</p><label class="fld">Endstand des alten Zählers<input id="ed-end" inputmode="decimal" placeholder="unbekannt" value="'+(r.end!=null?fmtValue(r.end,m.pre,m.dec):'')+'"></label><label class="fld">Anfangsstand des neuen Zählers<input id="ed-start" inputmode="decimal" value="'+fmtValue(r.start||0,m.pre,m.dec)+'"></label>':'')+
-  '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>',
+  (RO()?'<div class="row"><button class="btn sec" data-val="close">Schließen</button></div>':'<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>'),
   (d,v)=>({act:v,t:$('#ed-t',d).value,val:$('#ed-v',d).value,nr:$('#ed-nr',d).value.trim(),end:$('#ed-end',d)?$('#ed-end',d).value:null,start:$('#ed-start',d)?$('#ed-start',d).value:null}));
  if(!res||!res.act||res.act==='close')return;
  if(res.act==='del'){
@@ -1022,7 +1093,7 @@ const tri=(x,y)=>'<path d="M'+x.toFixed(1)+' '+(y-3.5).toFixed(1)+'l3.2 5.2h-6.4
 function fmtAxis(t){const a=Math.abs(t);return a>=100000?nf(t/1000,0)+' Tsd.':nf(t,a<1&&t!==0?((String(t).split('.')[1]||'').length>2?3:2):(a<10&&t%1?1:0))}
 function anaFolds(){
  return '<details class="fold"><summary>So wird gerechnet</summary><p>Zwischen zwei Ablesungen wird der Verbrauch gleichmäßig auf die Tage verteilt. Daraus entstehen die Monats- und Jahreswerte. Echte Ablesungen werden nicht verändert.</p>'+
-  '<p><b>Schraffiert</b>: Für diesen Monat gibt es keine eigene Ablesung, der Wert ist aus den Ablesungen davor und danach verteilt (interpoliert).</p>'+
+  '<p><b>Schraffiert, simuliert</b>: Für diesen Monat fehlt die Ablesung. Wie viel zwischen den beiden umliegenden Ablesungen verbraucht wurde, ist genau bekannt. Dieser Verbrauch wird nach dem Mittelwert desselben Monats aus allen Jahren mit echten Werten auf die fehlenden Monate verteilt. So bleibt die Summe exakt und der Jahresverlauf stimmt.</p>'+
   '<p><b>Blass</b>: Monat oder Quartal nur teilweise erfasst, am Anfang oder Ende der Aufzeichnung.</p>'+
   '<p><b>Dreieck</b>: Zählerwechsel ohne bekannten Endstand des alten Zählers. Dessen Anteil ist geschätzt. Trage den Endstand im Verlauf nach, dann wird genau gerechnet.</p></details>';
 }
@@ -1071,11 +1142,11 @@ function viewAna(){
  // Legende und Einzelwerte
  const all=series.flatMap(s=>s.pts).filter(Boolean),has=k=>all.some(p=>p[k]);
  const leg='<div class="legend">'+series.map(s=>'<span><i class="lg" style="--mc:'+s.col+'"></i>'+esc(s.label)+'</span>').join('')+
-  (has('interp')?'<span><i class="lg h"></i>interpoliert</span>':'')+(has('part')?'<span><i class="lg p"></i>unvollständig</span>':'')+(has('est')?'<span><i class="lgt"></i>geschätzt</span>':'')+'</div>';
+  (has('interp')?'<span><i class="lg h"></i>simuliert</span>':'')+(has('part')?'<span><i class="lg p"></i>unvollständig</span>':'')+(has('est')?'<span><i class="lgt"></i>geschätzt</span>':'')+'</div>';
  let det;
  if(A.sel!=null){
   const vals=series.map(s=>{const p=s.pts[A.sel];if(!p)return '';const v=A.metric==='day'?p.v/p.days:p.v;
-   return '<span class="dv"><i class="yd" style="--mc:'+s.col+'"></i>'+esc(p.lab)+'<b>'+fmtVal(v)+'</b>'+((p.interp||p.est||p.part)?'<span class="mu">'+[p.interp?'interpoliert':'',p.est?'geschätzt':'',p.part?'unvollständig':''].filter(Boolean).join(', ')+'</span>':'')+'</span>'}).filter(Boolean);
+   return '<span class="dv"><i class="yd" style="--mc:'+s.col+'"></i>'+esc(p.lab)+'<b>'+fmtVal(v)+'</b>'+((p.interp||p.est||p.part)?'<span class="mu">'+[p.interp?'simuliert':'',p.est?'geschätzt':'',p.part?'unvollständig':''].filter(Boolean).join(', ')+'</span>':'')+'</span>'}).filter(Boolean);
   det=vals.length?vals.join(''):'<span class="mu">Für diesen Abschnitt gibt es keine Werte.</span>';
  }else det='<span class="mu">Tippe auf einen Monat, um die Werte zu sehen.</span>';
  h+='<section class="card"><div class="atop">'+seg('anaMode',A.mode,[['year','Jahre'],['per','Zeiträume']])+seg('anaType',A.type,[['bar',ico('chart'),'Balken'],['line',ico('trend'),'Linie']])+'</div>'+
@@ -1137,6 +1208,76 @@ async function editConv(m){
  }
 }
 
+/* ---------- Haushalte ---------- */
+const homeOf=()=>S.homes.find(h=>h.id===S.home)||S.homes[0];
+const RO=()=>!!homeOf().arch;
+function roBlock(){if(RO()){toast('„'+homeOf().name+'“ ist archiviert und nur lesbar.');return true}return false}
+function homeStats(h){const a=h.id===S.home;return {m:(a?S.meters:h.meters||[]).length,r:(a?S.readings:h.readings||[]).length}}
+function switchHome(id){
+ const cur=homeOf(),nx=S.homes.find(h=>h.id===id);if(!nx||nx===cur)return;
+ cur.meters=S.meters;cur.readings=S.readings;cur.remind=S.remind;
+ S.meters=nx.meters||[];S.readings=nx.readings||[];S.remind=nx.remind||[];
+ delete nx.meters;delete nx.readings;delete nx.remind;S.home=id;
+ R={mid:null,digits:[],dt:'',photoNote:'',scan:'',scanMsg:'',helpOpen:false};H={mid:null,open:null};
+ if(A){A.mid=null;A.years=null;A.pa=null;A.pb=null;A.sel=null}
+ crReset();save();
+}
+async function pickHome(){
+ const rows=S.homes.map(h=>{const st=homeStats(h),a=h.id===S.home;
+  return '<button class="item" data-val="sw:'+h.id+'"><span style="display:flex;align-items:center;gap:12px"><span class="si">'+ico(h.arch?'archive':'home')+'</span><span><b>'+esc(h.name)+'</b><br><span class="mu sm">'+st.m+' Zähler, '+st.r+(st.r===1?' Ablesung':' Ablesungen')+(h.arch?', archiviert':'')+'</span></span></span><span class="'+(a?'':'mu')+'" style="color:'+(a?'var(--pri)':'')+'">'+(a?'aktiv':'›')+'</span></button>'}).join('');
+ const v=await modal('<h3>Haushalt wählen</h3><div>'+rows+'</div><div class="row"><button class="btn sec" data-val="manage">Verwalten</button><button class="btn sec" data-val="close">Schließen</button></div>');
+ if(!v||v==='close')return;
+ if(v==='manage'){SETP='homes';return go('set')}
+ const id=v.slice(3);if(id!==S.home){switchHome(id);go('home');toast('Haushalt „'+homeOf().name+'“')}
+}
+async function addHome(){
+ const r=await modal('<h3>Neuer Haushalt</h3><p class="mu sm">Der neue Haushalt startet leer, mit eigenen Zählern, Ablesungen und Erinnerungen. Deine anderen Haushalte bleiben unverändert.</p><label class="fld">Name<input id="hn" autocomplete="off" placeholder="z. B. Mietwohnung, Gartenhaus"></label><div class="row"><button class="btn" data-val="ok">Anlegen</button><button class="btn sec" data-val="close">Abbrechen</button></div>',(d,v)=>({v,name:$('#hn',d).value.trim()}));
+ if(!r||r.v!=='ok')return;
+ const name=r.name||'Haushalt '+(S.homes.length+1);
+ if(S.homes.some(h=>h.name.toLowerCase()===name.toLowerCase()))return toast('Diesen Namen gibt es schon.');
+ const h={id:'h'+uid(),name,created:Date.now(),meters:[],readings:[],remind:[]};
+ S.homes.push(h);switchHome(h.id);startSetup(true);
+}
+async function editHome(id){
+ const h=S.homes.find(x=>x.id===id);if(!h)return;const act=h.id===S.home,st=homeStats(h);
+ const r=await modal('<h3>Haushalt</h3><label class="fld">Name<input id="hn" value="'+esc(h.name)+'" autocomplete="off"></label><p class="mu sm">'+st.m+' Zähler, '+st.r+(st.r===1?' Ablesung':' Ablesungen')+(act?', gerade aktiv':'')+(h.arch?'. Archiviert, nur lesbar.':'.')+'</p>'+
+  '<div class="stack">'+(act?'':'<button class="btn sec" data-val="switch">Zu diesem Haushalt wechseln</button>')+'<button class="btn sec" data-val="arch">'+ico('archive')+' '+(h.arch?'Archivierung aufheben':'Archivieren')+'</button></div>'+
+  '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button>'+(S.homes.length>1?'<button class="btn danger" data-val="del">Löschen</button>':'')+'</div>',(d,v)=>({v,name:$('#hn',d).value.trim()}));
+ if(!r||!r.v||r.v==='close')return;
+ if(r.name&&r.name!==h.name){if(S.homes.some(x=>x!==h&&x.name.toLowerCase()===r.name.toLowerCase()))return toast('Diesen Namen gibt es schon.');h.name=r.name}
+ if(r.v==='switch'){switchHome(h.id);go('home');return toast('Haushalt „'+h.name+'“')}
+ if(r.v==='arch'){
+  if(!h.arch){const a=await modal('<h3>„'+esc(h.name)+'“ archivieren?</h3><p>Verlauf und Auswertung bleiben jederzeit lesbar. Neue Ablesungen, Zähler und Änderungen sind gesperrt, bis du die Archivierung aufhebst.</p><div class="row"><button class="btn" data-val="yes">Archivieren</button><button class="btn sec" data-val="no">Abbrechen</button></div>');if(a!=='yes')return;h.arch=1}
+  else delete h.arch;
+  save();render();return toast(h.arch?'Haushalt archiviert.':'Archivierung aufgehoben.');
+ }
+ if(r.v==='del'){
+  const a=await modal('<h3>Haushalt „'+esc(h.name)+'“ löschen?</h3><p>'+st.m+' Zähler und '+st.r+' Ablesungen mit Fotos werden gelöscht. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung.</p><div class="row"><button class="btn danger" data-val="yes">Endgültig löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
+  if(a!=='yes')return;
+  if(act)switchHome(S.homes.find(x=>x.id!==h.id).id);
+  (h.readings||[]).forEach(x=>{if(x.photo)DB.del(x.photo)});
+  S.homes=S.homes.filter(x=>x.id!==h.id);save();render();return toast('Haushalt gelöscht.');
+ }
+ save();render();toast('Gespeichert.');
+}
+// Ablesungen gezielt löschen (Zähler, Jahr, Monat, alle) – immer mit Rückfrage
+async function delReadings(list,title,text,btn){
+ if(roBlock())return;
+ if(!list.length)return toast('Hier gibt es keine Ablesungen.');
+ const a=await modal('<h3>'+esc(title)+'</h3><p>'+text+'</p><p class="mu sm">Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung, wenn du unsicher bist.</p><div class="row"><button class="btn danger" data-val="yes">'+esc(btn)+'</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
+ if(a!=='yes')return;
+ const ids=new Set(list.map(r=>r.id));list.forEach(r=>{if(r.photo)DB.del(r.photo)});
+ S.readings=S.readings.filter(r=>!ids.has(r.id));fillNumbers(S.meters,S.readings);R.digits=[];
+ save();render();toast(list.length+(list.length===1?' Ablesung':' Ablesungen')+' gelöscht.');
+}
+const MONF=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const inMonth=(r,y,mo)=>{const d=new Date(r.t);return d.getFullYear()===y&&(mo==null||d.getMonth()===mo)};
+function delPeriod(y,mo){
+ const m=meterById(H.mid);if(!m)return;
+ const list=readingsOf(m.id).filter(r=>inMonth(r,y,mo)),lab=mo==null?'dem Jahr '+y:MONF[mo]+' '+y,n=list.length;
+ delReadings(list,(mo==null?'Jahr '+y:MONF[mo]+' '+y)+' löschen?','Wirklich '+(n===1?'die Ablesung':'alle '+n+' Ablesungen')+' von „'+esc(m.name)+'“ aus '+lab+' löschen?','Löschen');
+}
+
 /* ---------- Einstellungen ---------- */
 let SETP='main';
 const srow=(p,icon,t,sub)=>'<button class="srow" data-act="setPage" data-p="'+p+'"><span class="si">'+ico(icon)+'</span><span class="sx"><b>'+t+'</b><span class="mu sm">'+sub+'</span></span><span class="mu sch" aria-hidden="true">›</span></button>';
@@ -1156,12 +1297,19 @@ function viewSet(){
    '<section class="card"><h2>Mitteilungen auf dem iPhone</h2><p class="mu sm">Die App zeigt fällige Ablesungen auf der Übersicht an. Damit dich dein iPhone zusätzlich per Mitteilung erinnert, kannst du den Zeitplan als Kalendertermin sichern. Mitteilungen direkt aus der App (Push) sind für später geplant, sie brauchen einen kleinen Zusatzdienst im Internet.</p><button class="btn sec wide" data-act="exportIcs">Als Kalendertermin sichern (.ics)</button></section>';
  }
  if(SETP==='look')return backBar('Darstellung')+'<section class="card"><label class="fld">Farbmodus<select id="theme"><option value="dark"'+(th==='dark'?' selected':'')+'>Dunkel (Standard)</option><option value="light"'+(th==='light'?' selected':'')+'>Hell</option><option value="auto"'+(th==='auto'?' selected':'')+'>Wie das Telefon</option></select></label></section>';
- if(SETP==='data')return backBar('Daten und Sicherung')+'<section class="card"><p class="mu sm">Alle Daten liegen auf diesem Gerät. Fotos sind in der Sicherung nicht enthalten.'+(S.set.lastBackup?' Letzte Sicherung: '+fmtDay(S.set.lastBackup)+'.':' Es gibt noch keine Sicherung.')+'</p>'+
+ if(SETP==='data')return backBar('Daten und Sicherung')+'<section class="card"><p class="mu sm">Alle Daten liegen auf diesem Gerät. Die Sicherung enthält alle Haushalte, Fotos sind nicht enthalten.'+(S.set.lastBackup?' Letzte Sicherung: '+fmtDay(S.set.lastBackup)+'.':' Es gibt noch keine Sicherung.')+'</p>'+
   '<div class="stack two"><button class="btn" data-act="exportData">Sicherung speichern</button><button class="btn sec" data-act="importData">Sicherung laden</button></div></section>'+
-  '<section class="card"><h2>Ablesungen als Tabelle (CSV)</h2><p class="mu sm">Der Import fügt neue Ablesungen hinzu und lässt vorhandene unverändert. Die Spalten heißen Zähler, Datum und Stand, auf Wunsch zusätzlich Zählernummer, zum Beispiel „Gas;19.11.2026 18:00;1850,123;10146039“.</p><div class="stack two"><button class="btn sec" data-act="importCsv">CSV importieren</button><button class="btn sec" data-act="exportCsv">CSV exportieren</button></div></section>'+
-  '<section class="card"><h2>Alles zurücksetzen</h2><p class="mu sm">Entfernt Zähler, Ablesungen und Fotos von diesem Gerät.</p><button class="btn danger wide" data-act="wipe">Alle Daten löschen</button></section>';
+  '<section class="card"><h2>Ablesungen als Tabelle (CSV)</h2><p class="mu sm">Der Import fügt neue Ablesungen in den Haushalt „'+esc(homeOf().name)+'“ ein und lässt vorhandene unverändert. Der Export enthält auch die Stände bei Zählerwechseln. Die Spalten heißen Zähler, Datum und Stand, auf Wunsch zusätzlich Zählernummer, zum Beispiel „Gas;19.11.2026 18:00;1850,123;10146039“.</p><div class="stack two"><button class="btn sec" data-act="importCsv">CSV importieren</button><button class="btn sec" data-act="exportCsv">CSV exportieren</button></div></section>'+
+  '<section class="card"><h2>Löschen</h2><p class="mu sm"><b>Nur Ablesungen</b> im Haushalt „'+esc(homeOf().name)+'“: Zähler, Nummern, Farben und Erinnerungen bleiben. Danach kannst du eine CSV-Datei neu einlesen. Einzelne Jahre, Monate oder Zähler löschst du im Verlauf.</p><button class="btn danger wide" data-act="wipeReadings">Nur Ablesungen löschen</button>'+
+  '<p class="mu sm" style="margin-top:12px"><b>Alles</b>: entfernt alle Haushalte, Zähler, Ablesungen und Fotos von diesem Gerät.</p><button class="btn danger wide" data-act="wipe">Alle Daten löschen</button></section>';
  if(SETP==='info')return backBar('Info')+'<section class="card"><p><b>'+APP.name+'</b> '+APP.version+'</p><p class="mu sm">Zählerstände erfassen, prüfen und auswerten. Die App arbeitet ohne Server, alle Daten bleiben auf deinem Gerät.</p></section>';
+ if(SETP==='homes'){
+  const rows=S.homes.map(h=>{const st=homeStats(h);return '<button class="item" data-act="editHome" data-id="'+h.id+'"><span style="display:flex;align-items:center;gap:12px"><span class="si">'+ico(h.arch?'archive':'home')+'</span><span><b>'+esc(h.name)+'</b><br><span class="mu sm">'+(h.id===S.home?'Aktiv, ':'')+st.m+' Zähler, '+st.r+(st.r===1?' Ablesung':' Ablesungen')+(h.arch?', archiviert':'')+'</span></span></span><span class="mu">›</span></button>'}).join('');
+  return backBar('Haushalte')+'<section class="card" style="padding:6px 14px">'+rows+'<div style="padding:8px 0 4px"><button class="btn sec wide" data-act="addHome">'+ico('plus')+' Neuen Haushalt anlegen</button></div></section>'+
+   '<section class="card"><details class="fold"><summary>Wozu Haushalte?</summary><p>Jeder Haushalt hat eigene Zähler, Ablesungen, Erinnerungen und Auswertungen, zum Beispiel Haus, Mietwohnung oder Gartenhaus. Gewechselt wird oben rechts über den Namen.</p><p><b>Archivieren</b>: Nach einem Umzug bleibt die alte Wohnung mit Verlauf und Auswertung lesbar. Neue Ablesungen und Änderungen sind dann gesperrt.</p><p>Die Sicherung enthält alle Haushalte.</p></details></section>';
+ }
  return '<section class="card" style="padding:4px 12px">'+
+  srow('homes','home','Haushalte',esc(homeOf().name)+(S.homes.length>1?' (von '+S.homes.length+')':'')+(RO()?', archiviert':''))+
   srow('meters','gauge','Zähler',S.meters.length?S.meters.map(m=>esc(m.name)).join(', '):'Noch keine')+
   srow('remind','bell','Erinnerungen',nrem?nrem+(nrem===1?' Zeitplan aktiv':' Zeitpläne aktiv'):'Keine eingerichtet')+
   srow('look','sun','Darstellung',th==='light'?'Hell':th==='auto'?'Wie das Telefon':'Dunkel')+
@@ -1192,12 +1340,14 @@ async function editMeter(id){
   '<label id="em-re" class="fld chk" hidden><input type="checkbox" id="em-reint"><span>Komma verschieben: vorhandene Ziffern neu deuten (nur bei gleicher Gesamtzahl der Stellen)</span></label>'+
   '<p id="em-ex" class="mu sm"></p><p class="mu sm">Gespeicherte Werte bleiben genau erhalten. Es ändert sich nur, wie viele Nachkommastellen angezeigt und eingegeben werden.</p>'+
   (m.medium==='gas'?'<div class="fld" style="margin-bottom:0">Umrechnung in kWh</div><p class="mu sm" style="margin:4px 0">'+(m.conv&&m.conv.length?m.conv.length+(m.conv.length===1?' Zeitraum':' Zeiträume')+', zuletzt Brennwert '+String(m.conv[m.conv.length-1].hs).replace('.',',')+' und Zustandszahl '+String(m.conv[m.conv.length-1].z).replace('.',','):'Noch nicht festgelegt')+'</p><button class="btn sec sm" data-val="conv">Brennwert und Zustandszahl</button>':'')+
+  '<button class="btn ghost sm wide" data-val="clr" style="color:var(--bad);margin-top:4px">'+ico('trash','s')+' Alle Ablesungen dieses Zählers löschen</button>'+
   '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>',
   (dd,v)=>({act:v,name:$('#em-n',dd).value.trim(),nr:$('#em-nr',dd).value.trim(),unit:$('#em-u',dd)?$('#em-u',dd).value.trim():null,col:EM.col,pre:EM.pre,dec:EM.dec,reint:EM.reint}));
  emLive();
  const res=await p;
  EM=null;
  if(!res||!res.act||res.act==='close')return;
+ if(res.act==='clr'){const n=readingsOf(m.id).length;return delReadings(readingsOf(m.id),'Alle Ablesungen von „'+m.name+'“ löschen?','Wirklich alle '+n+' Ablesungen von „'+esc(m.name)+'“ löschen? Der Zähler mit Nummer, Farbe und Einstellungen bleibt erhalten.','Alle löschen')}
  if(res.act==='del'){
   const n=readingsOf(m.id).length;
   const a=await modal('<h3>Zähler löschen?</h3><p>„'+esc(m.name)+'“ und '+n+' Ablesung'+(n===1?'':'en')+' werden gelöscht. Das lässt sich nicht rückgängig machen.</p><div class="row"><button class="btn danger" data-val="yes">Löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
@@ -1264,7 +1414,7 @@ function exportIcs(){
  toast('Kalenderdatei wurde erstellt.');
 }
 function exportData(){
- const blob=new Blob([JSON.stringify(S,null,1)],{type:'application/json'}),a=document.createElement('a');
+ const blob=new Blob([JSON.stringify(packState(),null,1)],{type:'application/json'}),a=document.createElement('a');
  a.href=URL.createObjectURL(blob);a.download='zaehlwerk-sicherung-'+new Date().toISOString().slice(0,10)+'.json';
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
  S.set.lastBackup=Date.now();save();render();toast('Sicherung wurde erstellt.');
@@ -1298,9 +1448,9 @@ function exportCsv(){
  toast('CSV-Datei wurde erstellt.');
 }
 async function wipe(){
- const a=await modal('<h3>Alle Daten löschen?</h3><p>Zähler, Ablesungen und Fotos werden von diesem Gerät entfernt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung.</p><div class="row"><button class="btn danger" data-val="yes">Alles löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
+ const a=await modal('<h3>Alle Daten löschen?</h3><p>Alle Haushalte mit Zählern, Ablesungen und Fotos werden von diesem Gerät entfernt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung.</p><div class="row"><button class="btn danger" data-val="yes">Alles löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
  if(a!=='yes')return;
- S.readings.forEach(r=>{if(r.photo)DB.del(r.photo)});S=blank();save();startSetup(true);toast('Alle Daten wurden gelöscht.');
+ S.readings.concat(...S.homes.map(h=>h.readings||[])).forEach(r=>{if(r.photo)DB.del(r.photo)});S=migrate(blank());A=null;H={mid:null,open:null};save();startSetup(true);toast('Alle Daten wurden gelöscht.');
 }
 
 /* ---------- Einrichtungsassistent ---------- */
@@ -1334,6 +1484,7 @@ function wBar(){const i=Math.max(0,STEPS.indexOf(W.step));return '<div class="st
 function viewSetup(){
  if(!W)startSetup(false);
  const nav=(back,next,nl)=>'<div class="row">'+(back?'<button class="btn sec" data-act="wBack">Zurück</button>':'')+'<button class="btn" style="flex:1" data-act="'+next+'">'+(nl||'Weiter')+'</button></div>';
+ if(W.step==='welcome'&&S.homes.length>1)return '<div class="hero"><div class="logo" aria-hidden="true"><i>0</i><i>7</i><i>6</i></div><h2 style="font-size:22px">„'+esc(homeOf().name)+'“ einrichten</h2><p class="mu">Der Haushalt startet leer. Richte jetzt den ersten Zähler ein.</p></div><div class="row" style="justify-content:center"><button class="btn" data-act="wStart">Los geht’s</button></div><div class="row" style="justify-content:center"><button class="btn ghost" data-act="wCancel">Später</button></div>';
  if(W.step==='welcome')return '<div class="hero"><div class="logo" aria-hidden="true"><i>0</i><i>7</i><i>6</i></div><h2 style="font-size:24px">Willkommen bei Zählwerk</h2><p class="mu">Zählerstände erfassen, prüfen und auswerten. Die App startet leer. Richte jetzt deinen ersten Zähler ein, das dauert etwa eine Minute.</p></div>'+
   '<div class="row" style="justify-content:center"><button class="btn" data-act="wStart">Los geht’s</button></div><div class="row" style="justify-content:center"><button class="btn ghost" data-act="importData">Sicherung laden</button></div>';
  if(W.step==='medium'){
@@ -1400,6 +1551,12 @@ const ACT={
  readMeter:el=>{R.mid=el.dataset.id;rDigits();R.dt='';R.photoNote='';go('read')},
  pickMeter:el=>{R.mid=el.dataset.id;rDigits();render()},
  pickHist:el=>{H.mid=el.dataset.id;render()},
+ homes:()=>pickHome(),
+ addHome:()=>addHome(),
+ editHome:el=>editHome(el.dataset.id),
+ delYear:el=>delPeriod(+el.dataset.y,null),
+ delMonth:el=>delPeriod(+el.dataset.y,+el.dataset.mo),
+ wipeReadings:()=>delReadings(S.readings.slice(),'Alle Ablesungen löschen?','Wirklich alle '+S.readings.length+' Ablesungen aller Zähler im Haushalt „'+esc(homeOf().name)+'“ löschen? Zähler, Zählernummern, Farben, Umrechnung und Erinnerungen bleiben erhalten.','Alle Ablesungen löschen'),
  pickAna:el=>{A.mid=el.dataset.id;A.sel=null;render()},
  anaMode:el=>{A.mode=el.dataset.v;A.sel=null;anaKeep();render()},
  anaType:el=>{A.type=el.dataset.v;anaKeep();render()},
@@ -1447,8 +1604,10 @@ document.addEventListener('click',e=>{
  const sw=e.target.closest('[data-sw]');
  if(sw&&EM){EM.col=sw.dataset.sw;$('#em-sw').innerHTML=swHtml();return}
  const el=e.target.closest('[data-act]');
- if(el&&ACT[el.dataset.act]){e.preventDefault();ACT[el.dataset.act](el,e)}
+ if(el&&ACT[el.dataset.act]){e.preventDefault();if(RO_ACTS.has(el.dataset.act)&&roBlock())return;ACT[el.dataset.act](el,e)}
 });
+const RO_ACTS=new Set(['addMeter','saveReading','importCsv','wipeReadings','delYear','delMonth','addRem','editRem','camera','library','pastePhoto','anaConv','editMeter','exportIcs']);
+document.addEventListener('toggle',e=>{const t=e.target;if(t.matches&&t.matches('details.yr')&&H.open){const y=+t.dataset.y;t.open?H.open.add(y):H.open.delete(y)}},true);
 document.addEventListener('change',e=>{
  if(e.target.id==='rm-kind'&&RM)rmLive();
  if(e.target.id==='em-reint'&&EM){EM.reint=e.target.checked;emLive()}
