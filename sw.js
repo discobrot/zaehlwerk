@@ -1,6 +1,6 @@
 // Zählwerk – Service Worker: Die App-Dateien werden zwischengespeichert, damit sie ohne Internet starten.
 // Online wird zuerst der Server gefragt (ohne den Browser-Zwischenspeicher), so kommen Updates sofort an. Offline greift der Zwischenspeicher.
-const CACHE = 'zaehlwerk-v2';
+const CACHE = 'zaehlwerk-v3';
 const FILES = [
   './',
   'index.html',
@@ -9,7 +9,9 @@ const FILES = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'icons/apple-touch-icon.png',
-  'icons/favicon-32.png'
+  'icons/favicon-32.png',
+  'lib/pdf.min.js',
+  'lib/pdf.worker.min.js'
 ];
 
 self.addEventListener('install', e => {

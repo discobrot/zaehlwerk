@@ -212,6 +212,14 @@ details.yr .chev{border-color:var(--mu)}details.yr[open] .chev{transform:rotate(
 table.kpi tr.tot td{font-weight:700}
 .kres{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-radius:12px;margin:2px 0 8px;border:1px solid var(--line);background:var(--glass)}
 .kres b{font-size:21px;font-variant-numeric:tabular-nums}.kres.pos b{color:var(--pri)}.kres.neg b{color:var(--warn)}.kres span{color:var(--mu);font-size:13.5px}
+details.bf{border:1px solid var(--line);border-radius:12px;padding:0 10px;margin:8px 0;background:var(--glass)}
+details.bf summary{list-style:none;display:flex;justify-content:space-between;align-items:center;min-height:44px;cursor:pointer;gap:8px}
+details.bf summary::-webkit-details-marker{display:none}details.bf summary span:first-child{display:inline-flex;align-items:center}
+details.bf[open]{padding-bottom:10px}
+.bgrid,.bgrid3{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}.bgrid .fld,.bgrid3 .fld{font-size:12px;margin-bottom:6px}
+.bgrid input,.bgrid3 input{min-height:40px;font-size:16px}
+.bper{border-top:1px dashed var(--line);padding-top:6px;margin-top:4px}
+tr.click{cursor:pointer}tr.click:active td{background:var(--glass)}
 </style>
 </head>
 <body>
@@ -229,12 +237,13 @@ table.kpi tr.tot td{font-weight:700}
 <input id="fcam" type="file" accept="image/*" capture="environment" hidden>
 <input id="flib" type="file" accept="image/*" hidden>
 <input id="fimp" type="file" accept="application/json,.json" hidden>
+<input id="fpdf" type="file" accept="application/pdf,.pdf" hidden>
 <input id="fbill" type="file" accept="application/json,.json" hidden>
 <input id="fcsv" type="file" accept=".csv,.txt,text/csv,text/plain" hidden>
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.6.0'};
+const APP={name:'Zählwerk',version:'0.7.0'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -706,6 +715,115 @@ function applyBills(meters,readings,o,newId){
   readings.push(r);res.added.push({name:m.name,t:tt,v:r.v});
  }
  return res;
+}
+// ---- Rechnung (PDF) lesen: Textzeilen und Erkennung der Stadtwerke-Rechnung ----
+// Liefert nur Zeilentext; gespeichert werden ausschließlich die erkannten Zahlen, nie der Text selbst.
+async function pdfLines(lib,data){
+ const doc=await lib.getDocument({data,isEvalSupported:false,useSystemFonts:true}).promise,out=[];
+ for(let p=1;p<=doc.numPages;p++){
+  const tc=await (await doc.getPage(p)).getTextContent(),rows=[];
+  for(const it of tc.items){if(!it.str||!it.str.trim())continue;const x=it.transform[4],y=it.transform[5];let r=rows.find(r=>Math.abs(r.y-y)<2.5);if(!r){r={y,it:[]};rows.push(r)}r.it.push({x,s:it.str,w:it.width||0})}
+  rows.sort((a,b)=>b.y-a.y);
+  for(const r of rows){r.it.sort((a,b)=>a.x-b.x);let s='',end=-1e9;for(const i of r.it){if(s&&!/\s$/.test(s)&&i.x-end>0.3)s+=' ';s+=i.s;end=i.x+i.w}out.push(s.replace(/\s+/g,' ').trim())}
+ }
+ try{doc.destroy()}catch(e){}
+ return out;
+}
+const reNum=s=>{if(s==null)return null;s=String(s).trim();const neg=/^-/.test(s);s=s.replace(/^-/,'').replace(/\./g,'').replace(',','.');const v=parseFloat(s);return isFinite(v)?(neg?-v:v):null};
+const dIso=s=>{const m=String(s).match(/(\d\d)\.(\d\d)\.(\d{4})/);return m?m[3]+'-'+m[2]+'-'+m[1]:null};
+function parseInvoice(lines){
+ const D='(\\d\\d\\.\\d\\d\\.\\d{4})',N='(-?[\\d.]+(?:,\\d+)?)',all=lines.join('\n');
+ const inv={m:{},next:{},credit:{}},res={inv,tariffs:{},conv:[],readings:[],swaps:[],warn:[]};
+ let m=all.match(new RegExp('für den Zeitraum vom '+D+' bis '+D))||all.match(new RegExp('Summe vom '+D+' bis '+D));
+ if(m){inv.from=dIso(m[1]);inv.to=dIso(m[2]);inv.year=+inv.to.slice(0,4)}
+ m=all.match(new RegExp('Anlage zu(?:r Rechnung|m Bescheid)(?: \\d+)? vom '+D));if(m)inv.date=dIso(m[1]);
+ const MEDS=['Strom','Gas','Wasser','Abwasser'],key=s=>({Strom:'strom',Gas:'gas',Wasser:'wasser',Abwasser:'abwasser'})[s];
+ const vats={};
+ // Übersicht: Menge, Steuersatz, Brutto; bezahlte Abschläge; Gutschriften
+ let inNext=false,nextDone={};
+ for(const l of lines){
+  if(/neue (Abschläge|Vorauszahlungen)/.test(l)){inNext=true;continue}
+  if(/^Die (Abschläge|Vorauszahlungen) sind fällig/.test(l)){inNext=false;continue}
+  let r;
+  if(inNext&&(r=l.match(new RegExp('^(Strom|Gas|Wasser|Abwasser) (?:\\d+ ?% '+N+' EUR '+N+' EUR )?'+N+' EUR$')))){const k=key(r[1]);if(!nextDone[k]){inv.next[k]=reNum(r[4]);nextDone[k]=1}continue}
+  if((r=l.match(new RegExp('^(Strom|Gas|Wasser|Abwasser) '+N+' (kWh|m³) (\\d+) ?% '+N+' EUR '+N+' EUR '+N+' EUR$')))){
+   const k=key(r[1]),o=inv.m[k]||(inv.m[k]={q:0,gross:0,paid:0});o.q+=reNum(r[2]);o.gross=+(o.gross+reNum(r[7])).toFixed(2);(vats[k]||(vats[k]=[])).push({vat:+r[4],q:reNum(r[2])});continue}
+  if((r=l.match(new RegExp('^Abwasser '+N+' m³ '+N+' EUR$')))){const o=inv.m.abwasser||(inv.m.abwasser={q:0,gross:0,paid:0});o.q+=reNum(r[1]);o.gross=+(o.gross+reNum(r[2])).toFixed(2);continue}
+  if((r=l.match(new RegExp('^bezahlter? (?:Abschlag|Vorauszahlung) (Strom|Gas|Wasser|Abwasser)\\b.*?'+N+' EUR$')))){const k=key(r[1]),o=inv.m[k]||(inv.m[k]={q:0,gross:0,paid:0});o.paid=+(o.paid-reNum(r[2])).toFixed(2);continue}
+  if((r=l.match(new RegExp('^Entlastung (Strom|Gas) \\d+ ?% '+N+' EUR '+N+' EUR '+N+' EUR$')))){inv.credit[key(r[1])]=reNum(r[4]);continue}
+ }
+ if(!inv.next.abwasser){m=all.match(/Gesamtbetrag in Höhe von ([\d.]+,\d+) EUR/);const s=['strom','gas','wasser'].reduce((a,k)=>a+(inv.next[k]||0),0);if(m&&s)inv.next.abwasser=+(reNum(m[1])-s).toFixed(2)}
+ // Abschnitte je Medium
+ const idx=[];lines.forEach((l,i)=>{if(MEDS.includes(l))idx.push([i,key(l)])});
+ const T={},blocks={strom:[],gas:[],wasser:[],abwasser:[]};
+ idx.forEach(([i0,k],n)=>{
+  const i1=n+1<idx.length?idx[n+1][0]:lines.length,t=T[k]||(T[k]={ap:[],gp:[],vp:[],rct:[]});let blk=null,last=null;
+  for(let i=i0+1;i<i1;i++){
+   const l=lines[i];let r;
+   if((r=l.match(new RegExp('^Zeitraum '+D+' '+D+' \\d+ Tage')))){blk={von:dIso(r[1]),bis:dIso(r[2]),code:null,nr:null,erlass:false};blocks[k].push(blk);continue}
+   const c=l.match(/\b(?:VNB|MSB)-(\d+)\b/);if(c&&blk)blk.code=+c[1];
+   if(/mit Erlass/.test(l)&&blk)blk.erlass=true;
+   if(blk&&(r=l.match(new RegExp('^Zählerstand '+N+' '+N+'(?: (?:VNB|MSB)-\\d+)? '+N+' (?:kWh|m³)(?: (0,\\d+) ([\\d,]+) [\\d.]+ kWh)?')))){blk.sv=reNum(r[1]);blk.sb=reNum(r[2]);if(r[4]){blk.z=reNum(r[4]);blk.hs=reNum(r[5])}continue}
+   if(blk&&(r=l.match(/^Zähler-Nr\.: (\S+)/))){blk.nr=r[1];continue}
+   if((r=l.match(new RegExp('^(?:Arbeitspreis|Schmutzwasser(?:gebühr)?) '+D+' '+D+'(?: (?:VNB|MSB)-\\d+)? '+N+'(?: (?:kWh|m³))? '+N+' (ct/kWh|EUR/m³)')))){
+    if(k==='abwasser'&&blk&&blk.erlass){last=null;continue}
+    last={from:dIso(r[1]),to:dIso(r[2]),q:reNum(r[3]),ap:reNum(r[4])/(r[5]==='ct/kWh'?100:1),rab:0};t.ap.push(last);continue}
+   if((r=l.match(new RegExp('^(Grundpreis|Verrechnungspreis) '+D+' '+D+' (\\d+)(?: Tage)? '+N+' EUR/Jahr')))){last={from:dIso(r[2]),to:dIso(r[3]),v:reNum(r[5]),rab:0};(r[1]==='Grundpreis'?t.gp:t.vp).push(last);continue}
+   if((r=l.match(/^Rabatt .*? ([\d,]+) ?% /))&&last){last.rab=reNum(r[1]);continue}
+   if((r=l.match(new RegExp('^(?:Kombirabatt|KOMBI-Rabatt|GARANT \\d+|Garant \\d+) '+D+' '+D+' '+N+' kWh -'+N+' ct/kWh')))){t.rct.push({from:dIso(r[1]),to:dIso(r[2]),v:reNum(r[4])/100});continue}
+  }
+ });
+ const cover=(L,d)=>L.filter(x=>x.from<=d&&x.to>=d);
+ for(const k of Object.keys(T)){
+  const t=T[k],aps=t.ap.slice().sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0),uniq=[];
+  aps.forEach(a=>{if(!uniq.some(u=>u.from===a.from))uniq.push(a)});
+  // Steuersatz je Zeitraum; bei zwei Sätzen anhand der Mengen aufteilen
+  let vatOf=()=>k==='abwasser'?0:((vats[k]||[])[0]||{}).vat;
+  const vs=vats[k]||[];
+  if(vs.length>1){
+   const tryOrder=ord=>{let cum=0;for(let i=0;i<uniq.length;i++){cum+=uniq.filter(x=>x.from===uniq[i].from).reduce((a,b)=>a+b.q,0);if(Math.abs(cum-ord[0].q)<=2)return i}return -1};
+   for(const ord of [vs,vs.slice().reverse()]){const cut=tryOrder(ord);if(cut>=0){vatOf=(a,i)=>i<=cut?ord[0].vat:ord[1].vat;break}}
+  }
+  const per=uniq.map((a,i)=>{
+   const g=cover(t.gp,a.from)[0],v=cover(t.vp,a.from)[0],rct=cover(t.rct,a.from).reduce((s,x)=>s+x.v,0);
+   const gp=(g?g.v:0)+(v?v.v:0),rab=a.rab||(g&&g.rab)||0;
+   return {from:a.from,ap:+a.ap.toFixed(6),gp:+gp.toFixed(2),vat:vatOf(a,i)??19,rab,rct:+rct.toFixed(6)};
+  });
+  if(k==='abwasser'&&!per.length&&t.vp.length)per.push({from:inv.from,ap:0,gp:t.vp[0].v,vat:0,rab:0,rct:0});
+  const merged=[];per.forEach(p=>{const q=merged[merged.length-1];if(q&&q.ap===p.ap&&q.gp===p.gp&&q.vat===p.vat&&q.rab===p.rab&&q.rct===p.rct)return;merged.push(p)});
+  res.tariffs[k]=merged;
+ }
+ // Zählerstände (nur echte: 220 abgelesen, 87 Selbstablesung), Wechsel, Gas-Umrechnung
+ const med={strom:'strom',gas:'gas',wasser:'wasser'};
+ for(const k of ['strom','gas','wasser']){
+  const B=blocks[k];
+  B.forEach((b,i)=>{
+   if(b.sb!=null&&(b.code===220||b.code===87))res.readings.push({medium:med[k],d:b.bis,v:b.sb,nr:b.nr,code:b.code});
+   if(k==='gas'&&b.z&&b.hs){const q=res.conv[res.conv.length-1];if(!q||q.z!==b.z||q.hs!==b.hs)res.conv.push({from:b.von,z:b.z,hs:b.hs})}
+   const p=B[i-1];if(p&&p.nr&&b.nr&&p.nr!==b.nr&&p.sb!=null)res.swaps.push({medium:med[k],d:b.von,end:p.sb,endD:p.bis,nrOld:p.nr,nrNew:b.nr});
+  });
+ }
+ res.readings=res.readings.filter(r=>!res.swaps.some(w=>w.medium===r.medium&&w.endD===r.d));
+ const G=blocks.abwasser.filter(b=>b.erlass);
+ G.forEach((b,i)=>{const p=G[i-1];if(p&&p.nr&&b.nr&&p.nr!==b.nr&&p.sb!=null)res.swaps.push({medium:'garten',d:b.von,end:p.sb,endD:p.bis,nrOld:p.nr,nrNew:b.nr})});
+ // Gutschriften auf Monate verteilen
+ res.credits=Object.entries(inv.credit).map(([k,v])=>({medium:k,year:inv.year,gross:v,months:(k==='gas'&&/Soforthilfe Gas/.test(all))?[12]:[1,2,3,4,5,6,7,8,9,10,11,12]}));
+ if(!inv.year)res.warn.push('Abrechnungszeitraum nicht gefunden');
+ ['strom','gas','wasser','abwasser'].forEach(k=>{if(!inv.m[k])res.warn.push(k+': Betrag nicht gefunden');if(!res.tariffs[k]||!res.tariffs[k].length)res.warn.push(k+': Preise nicht gefunden')});
+ return res;
+}
+// Eine Rechnung in die Rechnungsdaten übernehmen (ersetzt dasselbe Jahr und die Preise im Zeitraum)
+function mergeInvoice(B,p){
+ B=B||{provider:'',tariffs:{},invoices:[],credits:[]};B.tariffs=B.tariffs||{};B.invoices=B.invoices||[];B.credits=B.credits||[];
+ const inv=p.inv,from=inv.from,to=inv.to;
+ for(const k of ['strom','gas','wasser','abwasser']){
+  const L=(B.tariffs[k]||[]).filter(x=>!(x.from>=from&&x.from<=to)),nw=(p.tariffs[k]||[]);
+  if(!nw.length){B.tariffs[k]=L;continue}
+  B.tariffs[k]=L.concat(nw.map(x=>({from:x.from,ap:x.ap,gp:x.gp,vat:x.vat,rab:x.rab||0,rct:x.rct||0}))).sort((a,b)=>a.from<b.from?-1:a.from>b.from?1:0);
+ }
+ B.invoices=B.invoices.filter(x=>x.year!==inv.year).concat([{year:inv.year,from,to,date:inv.date,m:inv.m,next:inv.next,credit:Object.keys(inv.credit||{}).length?inv.credit:undefined}]).sort((a,b)=>a.year-b.year);
+ B.credits=B.credits.filter(c=>c.year!==inv.year).concat(p.credits||[]);
+ return B;
 }
 // </logic>
 
@@ -1337,7 +1455,7 @@ function costChart(ctx,y,sel){
 function viewCost(){
  if(!S.meters.length)return '<div class="card"><p>Noch keine Zähler.</p></div>';
  const ctx=costCtx();
- if(!ctx)return '<section class="card"><h2>Kosten</h2><p class="mu sm">Für die Kosten braucht die App die Preise aus deinen Jahresrechnungen. Lade dazu eine Rechnungsdatei unter Einstellungen, Daten und Sicherung.</p><button class="btn sec wide" data-act="goData">Rechnungsdatei laden</button></section>';
+ if(!ctx)return '<section class="card"><h2>Kosten</h2><p class="mu sm">Für die Kosten braucht die App die Preise aus deinen Jahresrechnungen. Wähle die PDF der Jahresrechnung, die App liest die Werte selbst aus, auch ohne Internet.</p><div class="stack"><button class="btn wide" data-act="addBill">'+ico('plus')+' Rechnung hinzufügen (PDF)</button><button class="btn sec wide" data-act="addBillMan">Von Hand eintragen</button><button class="btn ghost sm" data-act="goData">Rechnungsdatei laden</button></div></section>';
  const B=ctx.B,light=isLight(),inv=(B.invoices||[]).slice().sort((a,b)=>a.year-b.year);
  const years=[...new Set(Object.values(ctx.C).flatMap(c=>yearsOf(c)))].sort((a,b)=>a-b).filter(y=>Object.values(ctx.C).some(c=>sumRange(c,new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime()).cov>0));
  if(!years.includes(K.year))K.year=years.filter(y=>{const c=ctx.C.strom||Object.values(ctx.C)[0];const o=sumRange(c,new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime());return o.cov>=o.span*0.99}).pop()||years[years.length-1];
@@ -1369,9 +1487,9 @@ function viewCost(){
  }
  // Jahresüberblick
  const yr=inv.map(x=>{const ks=MED.map(([k])=>x.m[k]||{});const cost=ks.reduce((a,b)=>a+(b.gross||0),0)+Object.values(x.credit||{}).reduce((a,b)=>a+b,0),paid=ks.reduce((a,b)=>a+(b.paid||0),0);
-  return x.missing?'<tr><td>'+x.year+'</td><td colspan="3" class="mu" style="text-align:left">Rechnung fehlt</td></tr>':'<tr><td>'+x.year+'</td><td>'+eur0(cost)+'</td><td>'+eur0(paid)+'</td><td class="'+(paid-cost>=0?'pos':'neg')+'">'+(paid-cost>=0?'+':'−')+eur0(Math.abs(paid-cost))+'</td></tr>'}).reverse().join('');
- h+='<section class="card"><h2>Rechnungen</h2><div class="tscroll"><table class="kpi"><tr><th>Jahr</th><th>Rechnung</th><th>Abschläge</th><th>Ergebnis</th></tr>'+yr+'</table></div>'+
-  '<details class="fold"><summary>Was die Spalten zeigen</summary><p>Rechnungsbetrag brutto für Strom, Gas, Wasser und Abwasser, abzüglich Gutschriften. Abschläge sind die bezahlten Beträge laut Rechnung. Plus bedeutet Guthaben, Minus Nachzahlung.</p><p>2017 umfasst den Zeitraum ab 19.11.2016.</p></details></section>';
+  return x.missing?'<tr><td>'+x.year+'</td><td colspan="3" class="mu" style="text-align:left">Rechnung fehlt</td></tr>':'<tr class="click" data-act="billRow" data-y="'+x.year+'"><td>'+x.year+'</td><td>'+eur0(cost)+'</td><td>'+eur0(paid)+'</td><td class="'+(paid-cost>=0?'pos':'neg')+'">'+(paid-cost>=0?'+':'−')+eur0(Math.abs(paid-cost))+'</td></tr>'}).reverse().join('');
+ h+='<section class="card"><div class="atop"><h2 style="margin:0">Rechnungen</h2><button class="btn sec sm" data-act="addBill">'+ico('plus')+' Rechnung</button></div><div class="tscroll"><table class="kpi"><tr><th>Jahr</th><th>Rechnung</th><th>Abschläge</th><th>Ergebnis</th></tr>'+yr+'</table></div>'+
+  '<details class="fold"><summary>Was die Spalten zeigen</summary><p>Rechnungsbetrag brutto für Strom, Gas, Wasser und Abwasser, abzüglich Gutschriften. Abschläge sind die bezahlten Beträge laut Rechnung. Plus bedeutet Guthaben, Minus Nachzahlung.</p><p>Tippe auf ein Jahr, um die Rechnung zu bearbeiten oder zu löschen. Neue Rechnungen fügst du als PDF hinzu, die App liest Preise, Mengen, Abschläge und Zählerstände selbst aus.</p></details></section>';
  // Preise und Abgleich je Medium
  const md=MED.find(x=>x[0]===K.med)||MED[0],Lm=ctx.T[md[0]],py=[];
  for(let yy=years[0];yy<=fy;yy++)py.push(yy);
@@ -1405,6 +1523,115 @@ async function importBillsFile(f){
    (res.numbers?'<li>'+res.numbers+' frühere Zählernummern ergänzt</li>':'')+
    '</ul><p class="mu sm">Stände, zu denen du schon eigene Ablesungen hast, bleiben unverändert. Geschätzte Werte der Stadtwerke werden nicht übernommen.</p><div class="row"><button class="btn" data-val="ok">Zu den Kosten</button><button class="btn sec" data-val="close">Schließen</button></div>').then(v=>{if(v==='ok'){anaInit();A.view='cost';go('ana')}});
  }catch(e){toast(e.message||'Die Datei ist nicht lesbar.')}
+}
+
+/* ---------- Rechnung hinzufügen: PDF lesen oder von Hand ---------- */
+let PDFLIB=null;
+function loadPdfJs(){
+ if(PDFLIB)return Promise.resolve(PDFLIB);
+ return new Promise((ok,no)=>{const s=document.createElement('script');s.src='lib/pdf.min.js';
+  s.onload=()=>{const L=window.pdfjsLib;if(!L)return no(new Error('Das Lesemodul für PDF-Dateien fehlt.'));L.GlobalWorkerOptions.workerSrc='lib/pdf.worker.min.js';PDFLIB=L;ok(L)};
+  s.onerror=()=>no(new Error('Das Lesemodul für PDF-Dateien fehlt. Der Ordner „lib“ muss mit auf GitHub liegen.'));document.head.appendChild(s)});
+}
+const MEDU={strom:['Strom','kWh','ct/kWh',100],gas:['Gas','kWh','ct/kWh',100],wasser:['Wasser','m³','€/m³',1],abwasser:['Abwasser','m³','€/m³',1]};
+const fin=x=>x==null||!isFinite(x)?'':String(+(+x).toFixed(6)).replace('.',',');
+const isoDay=t=>{const d=new Date(t);return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())};
+async function addBillPdf(f){
+ if(!f||roBlock())return;
+ let p;
+ try{
+  toast('Rechnung wird gelesen …');
+  const L=await loadPdfJs();p=parseInvoice(await pdfLines(L,new Uint8Array(await f.arrayBuffer())));
+ }catch(e){return toast(e.message||'Die PDF ist nicht lesbar.')}
+ if(!p.inv.year&&!Object.keys(p.inv.m).length){
+  const a=await modal('<h3>Keine Rechnung erkannt</h3><p>In dieser PDF wurden keine Rechnungswerte gefunden, zum Beispiel weil sie eingescannt ist oder von einem anderen Versorger stammt. Du kannst die Werte von Hand eintragen.</p><div class="row"><button class="btn" data-val="man">Von Hand eintragen</button><button class="btn sec" data-val="close">Schließen</button></div>');
+  return a==='man'?billForm(blankBill(),false):null;
+ }
+ return billForm(p,true);
+}
+function blankBill(){
+ const B=S.bills||{},last=(B.invoices||[]).map(x=>x.year).sort().pop(),y=last?last+1:new Date().getFullYear()-1,from=y+'-01-01',to=y+'-12-31',tariffs={};
+ for(const k of Object.keys(MEDU)){const L=(B.tariffs&&B.tariffs[k])||[],t=L[L.length-1];tariffs[k]=[t?{...t,from}:{from,ap:null,gp:null,vat:k==='abwasser'?0:k==='wasser'?7:19,rab:0,rct:0}]}
+ return {inv:{year:y,from,to,date:'',m:{},next:{},credit:{}},tariffs,readings:[],swaps:[],conv:[],credits:[],warn:[]};
+}
+function billOf(year){
+ const B=S.bills,x=B.invoices.find(i=>i.year===year);if(!x)return null;
+ const tariffs={};
+ for(const k of Object.keys(MEDU)){const L=(B.tariffs[k]||[]).slice().sort((a,b)=>a.from<b.from?-1:1),inn=L.filter(t=>t.from>=x.from&&t.from<=x.to),before=L.filter(t=>t.from<x.from).pop();
+  tariffs[k]=(inn.length&&inn[0].from===x.from?inn:(before?[{...before,from:x.from}]:[]).concat(inn)).map(t=>({...t}))}
+ return {inv:{year:x.year,from:x.from,to:x.to,date:x.date||'',m:JSON.parse(JSON.stringify(x.m||{})),next:{...(x.next||{})},credit:{...(x.credit||{})}},tariffs,readings:[],swaps:[],conv:[],credits:(B.credits||[]).filter(c=>c.year===x.year),warn:[]};
+}
+async function billForm(p,fromPdf,editing){
+ let err='';
+ const extra=[p.readings.length?p.readings.length+(p.readings.length===1?' Zählerstand':' Zählerstände'):'',p.conv.length?'Gas-Umrechnung ('+p.conv.length+(p.conv.length===1?' Zeitraum)':' Zeiträume)'):'',p.swaps.length?p.swaps.length+(p.swaps.length===1?' Zählerwechsel':' Zählerwechsel'):''].filter(Boolean);
+ for(;;){
+  const J=p.inv,inp=(attrs,v,ph)=>'<input '+attrs+' inputmode="decimal" value="'+esc(fin(v))+'"'+(ph?' placeholder="'+ph+'"':'')+'>';
+  let h='<h3>Rechnung '+(J.year||'')+(fromPdf?' prüfen':editing?' bearbeiten':' eintragen')+'</h3><p class="mu sm">'+(fromPdf?'Aus der PDF erkannt. Prüfe die Werte und korrigiere, was nicht stimmt. Gespeichert werden nur diese Zahlen, nicht die PDF.':'Trage die Werte aus der Rechnung ein. Beträge brutto, Preise netto wie auf der Rechnung.')+'</p>'+
+   (p.warn&&p.warn.length&&fromPdf?'<p class="msg bad">Nicht gefunden: '+esc(p.warn.join(', '))+'. Bitte ergänzen.</p>':'')+
+   '<div class="stack two"><label class="fld">Jahr<input data-f="year" inputmode="numeric" value="'+esc(J.year||'')+'"></label><label class="fld">Rechnungsdatum<input type="date" data-f="date" value="'+esc(J.date||'')+'"></label></div>'+
+   '<div class="stack two"><label class="fld">Zeitraum von<input type="date" data-f="from" value="'+esc(J.from||'')+'"></label><label class="fld">bis<input type="date" data-f="to" value="'+esc(J.to||'')+'"></label></div>';
+  for(const [k,[lab,unit,pu,mul]] of Object.entries(MEDU)){
+   const o=J.m[k]||{},T=p.tariffs[k]||[];
+   h+='<details class="bf"'+(k==='strom'?' open':'')+'><summary><span><i class="yd" style="--mc:var(--c-'+(k==='abwasser'?'sand':k)+')"></i><b>'+lab+'</b></span><span class="mu sm">'+(o.q!=null?nf(o.q,0)+' '+unit:'')+(o.gross!=null?', '+eur(o.gross):'')+'</span></summary>'+
+    '<div class="bgrid"><label class="fld">Menge ('+unit+')'+inp('data-m="'+k+'" data-f="q"',o.q)+'</label><label class="fld">Betrag brutto (€)'+inp('data-m="'+k+'" data-f="gross"',o.gross)+'</label>'+
+    '<label class="fld">Bezahlte Abschläge (€)'+inp('data-m="'+k+'" data-f="paid"',o.paid)+'</label><label class="fld">Neuer Abschlag (€/Monat)'+inp('data-m="'+k+'" data-f="next"',J.next[k])+'</label>'+
+    (k==='strom'||k==='gas'?'<label class="fld">Gutschrift (€, negativ)'+inp('data-m="'+k+'" data-f="credit"',J.credit[k],'z. B. −150,60')+'</label>':'')+'</div>'+
+    '<div class="flab">Preise netto</div>'+T.map((t,i)=>'<div class="bper"><div class="bgrid3"><label class="fld">ab<input type="date" data-t="'+k+'" data-i="'+i+'" data-f="from" value="'+esc(t.from||'')+'"></label>'+
+     '<label class="fld">Arbeitspreis ('+pu+')'+inp('data-t="'+k+'" data-i="'+i+'" data-f="ap"',t.ap!=null?t.ap*mul:null)+'</label>'+
+     '<label class="fld">Grundpreis (€/Jahr)'+inp('data-t="'+k+'" data-i="'+i+'" data-f="gp"',t.gp)+'</label>'+
+     '<label class="fld">Rabatt (%)'+inp('data-t="'+k+'" data-i="'+i+'" data-f="rab"',t.rab||0)+'</label>'+
+     '<label class="fld">Rabatt ('+pu+')'+inp('data-t="'+k+'" data-i="'+i+'" data-f="rct"',(t.rct||0)*mul)+'</label>'+
+     '<label class="fld">USt (%)'+inp('data-t="'+k+'" data-i="'+i+'" data-f="vat"',t.vat)+'</label></div>'+
+     (T.length>1?'<button class="btn ghost sm" data-val="del:'+k+':'+i+'" style="color:var(--bad)">Zeitraum entfernen</button>':'')+'</div>').join('')+
+    '<button class="btn sec sm" data-val="add:'+k+'">'+ico('plus')+' Preis ab Datum</button></details>';
+  }
+  if(extra.length)h+='<p class="mu sm" style="margin-top:10px">Außerdem werden übernommen: '+extra.join(', ')+'. Vorhandene eigene Ablesungen bleiben unverändert.</p>';
+  if(err)h+='<p class="msg bad">'+esc(err)+'</p>';
+  h+='<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Abbrechen</button></div>';
+  const res=await modal(h,(d,act)=>{
+   const g=sel=>$(sel,d),num=el=>el?parseDeNum(el.value):null;
+   const inv={year:+(g('[data-f="year"]').value||0),date:g('[data-f="date"]').value,from:g('[data-f="from"]').value,to:g('[data-f="to"]').value,m:{},next:{},credit:{}};
+   const tariffs={};
+   for(const [k,[,,,mul]] of Object.entries(MEDU)){
+    const v=f=>num(g('[data-m="'+k+'"][data-f="'+f+'"]'));
+    const q=v('q'),gr=v('gross'),pd=v('paid');if(q!=null||gr!=null||pd!=null)inv.m[k]={q,gross:gr,paid:pd};
+    const nx=v('next');if(nx!=null)inv.next[k]=nx;const cr=v('credit');if(cr)inv.credit[k]=-Math.abs(cr);
+    tariffs[k]=(p.tariffs[k]||[]).map((_,i)=>{const f=x=>g('[data-t="'+k+'"][data-i="'+i+'"][data-f="'+x+'"]');
+     const ap=num(f('ap')),rct=num(f('rct'));return {from:f('from').value,ap:ap==null?null:ap/mul,gp:num(f('gp')),rab:num(f('rab'))||0,rct:rct?rct/mul:0,vat:num(f('vat'))}});
+   }
+   return {act,inv,tariffs};
+  });
+  if(!res||!res.act||res.act==='close')return;
+  p.inv=res.inv;p.tariffs=res.tariffs;err='';
+  if(res.act.startsWith('add:')){const k=res.act.slice(4),L=p.tariffs[k],t=L[L.length-1]||{};L.push({...t,from:''});continue}
+  if(res.act.startsWith('del:')){const [,k,i]=res.act.split(':');p.tariffs[k].splice(+i,1);continue}
+  const I=p.inv;
+  if(!(I.year>2000&&I.year<2100)){err='Bitte das Jahr eintragen.';continue}
+  if(!I.from||!I.to||I.from>I.to){err='Bitte den Zeitraum prüfen.';continue}
+  let bad='';
+  for(const [k,[lab]] of Object.entries(MEDU)){
+   p.tariffs[k]=p.tariffs[k].filter(t=>t.from||t.ap!=null||t.gp!=null);
+   for(const t of p.tariffs[k]){if(!t.from||t.ap==null||t.gp==null||t.vat==null){bad=lab+': Bei jedem Preis braucht es Datum, Arbeitspreis, Grundpreis und Steuersatz.';break}}
+   if(bad)break;p.tariffs[k].sort((a,b)=>a.from<b.from?-1:1);
+  }
+  if(bad){err=bad;continue}
+  if(S.bills&&!editing&&S.bills.invoices.some(x=>x.year===I.year)){const a=await modal('<h3>Rechnung '+I.year+' ersetzen?</h3><p>Für '+I.year+' ist schon eine Rechnung gespeichert. Die neue ersetzt sie.</p><div class="row"><button class="btn" data-val="yes">Ersetzen</button><button class="btn sec" data-val="no">Zurück</button></div>');if(a!=='yes')continue}
+  // Gutschriften: Verteilung aus der Erkennung behalten, sonst auf alle Monate
+  p.credits=Object.entries(I.credit).map(([k,v])=>{const c=(p.credits||[]).find(x=>x.medium===k);return {medium:k,year:I.year,gross:v,months:c?c.months:[1,2,3,4,5,6,7,8,9,10,11,12]}});
+  S.bills=mergeInvoice(S.bills,p);if(!S.bills.provider&&fromPdf)S.bills.provider='Stadtwerke Finsterwalde';S.bills.loaded=Date.now();
+  const r=applyBills(S.meters,S.readings,{readings:p.readings,swaps:p.swaps},uid);
+  const gm=S.meters.find(m=>m.medium==='gas');
+  if(gm&&p.conv.length){const a=dParse(I.from),b=dParse(I.to);gm.conv=(gm.conv||[]).filter(c=>c.from<a||c.from>b).concat(p.conv.map(c=>({from:dParse(c.from),z:c.z,hs:c.hs}))).sort((x,y)=>x.from-y.from)}
+  fillNumbers(S.meters,S.readings);save();anaInit();A.view='cost';K.year=I.year;K.sel=null;go('ana');
+  return toast('Rechnung '+I.year+' gespeichert'+(r.added.length?', '+r.added.length+(r.added.length===1?' Stand':' Stände')+' ergänzt':'')+'.');
+ }
+}
+async function billRow(year){
+ const x=S.bills&&S.bills.invoices.find(i=>i.year===year);if(!x)return;
+ const a=await modal('<h3>Rechnung '+year+'</h3><p class="mu sm">Zeitraum '+fmtDay(dParse(x.from))+' bis '+fmtDay(dParse(x.to))+(x.date?', Rechnung vom '+fmtDay(dParse(x.date)):'')+'.</p><div class="row"><button class="btn" data-val="edit">Bearbeiten</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>');
+ if(a==='edit'){if(roBlock())return;return billForm(billOf(year),false,true)}
+ if(a==='del'){if(roBlock())return;const b=await modal('<h3>Rechnung '+year+' löschen?</h3><p>Beträge, Abschläge und Gutschriften von '+year+' werden entfernt. Die Preise bleiben für die Kostenberechnung erhalten.</p><div class="row"><button class="btn danger" data-val="yes">Löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
+  if(b!=='yes')return;S.bills.invoices=S.bills.invoices.filter(i=>i.year!==year);S.bills.credits=(S.bills.credits||[]).filter(c=>c.year!==year);save();render();toast('Rechnung '+year+' gelöscht.')}
 }
 
 /* ---------- Haushalte ---------- */
@@ -1500,7 +1727,7 @@ function viewSet(){
   '<div class="stack two"><button class="btn" data-act="exportData">Sicherung speichern</button><button class="btn sec" data-act="importData">Sicherung laden</button></div></section>'+
   '<section class="card"><h2>Ablesungen als Tabelle (CSV)</h2><p class="mu sm">Der Import fügt neue Ablesungen in den Haushalt „'+esc(homeOf().name)+'“ ein und lässt vorhandene unverändert. Der Export enthält auch die Stände bei Zählerwechseln. Die Spalten heißen Zähler, Datum und Stand, auf Wunsch zusätzlich Zählernummer, zum Beispiel „Gas;19.11.2026 18:00;1850,123;10146039“.</p><div class="stack two"><button class="btn sec" data-act="importCsv">CSV importieren</button><button class="btn sec" data-act="exportCsv">CSV exportieren</button></div></section>'+
   '<section class="card"><h2>Rechnungsdaten</h2><p class="mu sm">'+(S.bills?'Geladen: '+(S.bills.invoices||[]).filter(x=>!x.missing).length+' Jahresrechnungen'+(S.bills.provider?' der '+esc(S.bills.provider):'')+', am '+fmtDay(S.bills.loaded)+'. Eine neue Datei ersetzt die Preise und ergänzt fehlende Stände.':'Mit den Preisen aus deinen Jahresrechnungen berechnet die App Kosten, Preisentwicklung und die Prognose für die Abschläge.')+'</p>'+
-  '<div class="stack'+(S.bills?' two':'')+'"><button class="btn sec" data-act="importBills">Rechnungsdatei laden</button>'+(S.bills?'<button class="btn sec" data-act="dropBills">Entfernen</button>':'')+'</div></section>'+
+  '<div class="stack"><button class="btn wide" data-act="addBill">'+ico('plus')+' Rechnung hinzufügen (PDF)</button></div><div class="stack two" style="margin-top:8px"><button class="btn sec" data-act="addBillMan">Von Hand eintragen</button><button class="btn sec" data-act="importBills">Rechnungsdatei laden</button></div>'+(S.bills?'<button class="btn ghost sm" data-act="dropBills" style="margin-top:6px;color:var(--bad)">Rechnungsdaten entfernen</button>':'')+'</section>'+
   '<section class="card"><h2>Löschen</h2><p class="mu sm"><b>Nur Ablesungen</b> im Haushalt „'+esc(homeOf().name)+'“: Zähler, Nummern, Farben und Erinnerungen bleiben. Danach kannst du eine CSV-Datei neu einlesen. Einzelne Jahre, Monate oder Zähler löschst du im Verlauf.</p><button class="btn danger wide" data-act="wipeReadings">Nur Ablesungen löschen</button>'+
   '<p class="mu sm" style="margin-top:12px"><b>Alles</b>: entfernt alle Haushalte, Zähler, Ablesungen und Fotos von diesem Gerät.</p><button class="btn danger wide" data-act="wipe">Alle Daten löschen</button></section>';
  if(SETP==='info')return backBar('Info')+'<section class="card"><p><b>'+APP.name+'</b> '+APP.version+'</p><p class="mu sm">Zählerstände erfassen, prüfen und auswerten. Die App arbeitet ohne Server, alle Daten bleiben auf deinem Gerät.</p></section>';
@@ -1758,6 +1985,9 @@ const ACT={
  costPick:el=>{const i=+el.dataset.i;K.sel=K.sel===i?null:i;render()},
  costMed:el=>{K.med=el.dataset.v;render()},
  importBills:()=>$('#fbill').click(),
+ addBill:()=>$('#fpdf').click(),
+ addBillMan:()=>billForm(blankBill(),false),
+ billRow:el=>billRow(+el.dataset.y),
  dropBills:async()=>{const a=await modal('<h3>Rechnungsdaten entfernen?</h3><p>Preise und Rechnungen werden aus der App entfernt. Ergänzte Zählerstände, Endstände und die Gas-Umrechnung bleiben erhalten.</p><div class="row"><button class="btn danger" data-val="yes">Entfernen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');if(a!=='yes')return;S.bills=null;save();render();toast('Rechnungsdaten entfernt.')},
  addHome:()=>addHome(),
  editHome:el=>editHome(el.dataset.id),
@@ -1813,7 +2043,7 @@ document.addEventListener('click',e=>{
  const el=e.target.closest('[data-act]');
  if(el&&ACT[el.dataset.act]){e.preventDefault();if(RO_ACTS.has(el.dataset.act)&&roBlock())return;ACT[el.dataset.act](el,e)}
 });
-const RO_ACTS=new Set(['importBills','dropBills','addMeter','saveReading','importCsv','wipeReadings','delYear','delMonth','addRem','editRem','camera','library','pastePhoto','anaConv','editMeter','exportIcs']);
+const RO_ACTS=new Set(['addBill','addBillMan','importBills','dropBills','addMeter','saveReading','importCsv','wipeReadings','delYear','delMonth','addRem','editRem','camera','library','pastePhoto','anaConv','editMeter','exportIcs']);
 document.addEventListener('toggle',e=>{const t=e.target;if(t.matches&&t.matches('details.yr')&&H.open){const y=+t.dataset.y;t.open?H.open.add(y):H.open.delete(y)}},true);
 document.addEventListener('change',e=>{
  if(e.target.id==='rm-kind'&&RM)rmLive();
@@ -1858,6 +2088,7 @@ document.addEventListener('paste',e=>{
 $('#fcam').addEventListener('change',e=>{const el=e.target;handlePhoto(el.files[0]).finally(()=>{el.value=''})});
 $('#flib').addEventListener('change',e=>{const el=e.target;handlePhoto(el.files[0]).finally(()=>{el.value=''})});
 $('#fimp').addEventListener('change',e=>{importFile(e.target.files[0]);e.target.value=''});
+$('#fpdf').addEventListener('change',e=>{const el=e.target;addBillPdf(el.files[0]).finally(()=>{el.value=''})});
 $('#fbill').addEventListener('change',e=>{const el=e.target;importBillsFile(el.files[0]).finally(()=>{el.value=''})});
 $('#fcsv').addEventListener('change',e=>{const el=e.target;importCsv(el.files[0]).finally(()=>{el.value=''})});
 window.addEventListener('resize',()=>{if(CR.src&&$('#crop')){crDraw()}});
