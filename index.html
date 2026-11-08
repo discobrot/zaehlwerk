@@ -249,7 +249,7 @@ tr.click{cursor:pointer}tr.click:active td{background:var(--glass)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.8.1'};
+const APP={name:'Zählwerk',version:'0.8.2'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -1756,8 +1756,10 @@ function viewSet(){
    '<section class="card"><h2>Mitteilungen auf dem iPhone</h2><p class="mu sm">Die App zeigt fällige Ablesungen auf der Übersicht an. Damit dich dein iPhone zusätzlich per Mitteilung erinnert, kannst du den Zeitplan als Kalendertermin sichern. Mitteilungen direkt aus der App (Push) sind für später geplant, sie brauchen einen kleinen Zusatzdienst im Internet.</p><button class="btn sec wide" data-act="exportIcs">Als Kalendertermin sichern (.ics)</button></section>';
  }
  if(SETP==='look')return backBar('Darstellung')+'<section class="card"><label class="fld">Farbmodus<select id="theme"><option value="dark"'+(th==='dark'?' selected':'')+'>Dunkel (Standard)</option><option value="light"'+(th==='light'?' selected':'')+'>Hell</option><option value="auto"'+(th==='auto'?' selected':'')+'>Wie das Telefon</option></select></label></section>';
- if(SETP==='data')return backBar('Daten und Sicherung')+'<section class="card"><p class="mu sm">Alle Daten liegen auf diesem Gerät. Die Sicherung enthält alle Haushalte, Fotos sind nicht enthalten.'+(S.set.lastBackup?' Letzte Sicherung: '+fmtDay(S.set.lastBackup)+'.':' Es gibt noch keine Sicherung.')+'</p>'+
-  '<div class="stack two"><button class="btn" data-act="exportData">Sicherung speichern</button><button class="btn sec" data-act="importData">Sicherung laden</button></div></section>'+
+ if(SETP==='data')return backBar('Daten und Sicherung')+'<section class="card"><p class="mu sm">'+(SY.st?'Die Daten liegen auf diesem Gerät und werden mit Dropbox abgeglichen.':'Alle Daten liegen auf diesem Gerät.')+' Die Sicherung enthält alle Haushalte, Fotos sind nicht enthalten.'+(S.set.lastBackup?' Letzte Sicherung: '+fmtDay(S.set.lastBackup)+'.':' Es gibt noch keine Sicherung.')+'</p>'+
+  '<div class="stack two"><button class="btn" data-act="shareData">Sicherung teilen</button><button class="btn sec" data-act="importData">Sicherung laden</button></div>'+
+  '<button class="btn ghost sm wide" data-act="exportData" style="margin-top:4px">Als Datei speichern</button>'+
+  '<details class="fold"><summary>Geräte ohne Dropbox abgleichen</summary><p>Tippe auf „Sicherung teilen“ und wähle „In Dateien sichern“, zum Beispiel in iCloud Drive. Auf dem anderen Gerät tippst du auf „Sicherung laden“ und dann auf „Zusammenführen“. So kommen die Daten beider Geräte zusammen, ohne dass etwas verloren geht.</p><p><b>Fritzbox als Ablage</b>: In der Dateien-App auf die drei Punkte tippen, „Mit Server verbinden“ wählen und smb://fritz.box eingeben. Anmelden mit einem Fritzbox-Benutzer, der Zugriff auf den Speicher hat. Danach erscheint die Fritzbox beim Sichern als Ort.</p></details></section>'+
   '<section class="card"><h2>Ablesungen als Tabelle (CSV)</h2><p class="mu sm">Der Import fügt neue Ablesungen in den Haushalt „'+esc(homeOf().name)+'“ ein und lässt vorhandene unverändert. Der Export enthält auch die Stände bei Zählerwechseln. Die Spalten heißen Zähler, Datum und Stand, auf Wunsch zusätzlich Zählernummer, zum Beispiel „Gas;19.11.2026 18:00;1850,123;10146039“.</p><div class="stack two"><button class="btn sec" data-act="importCsv">CSV importieren</button><button class="btn sec" data-act="exportCsv">CSV exportieren</button></div></section>'+
   '<section class="card"><h2>Rechnungsdaten</h2><p class="mu sm">'+(S.bills?'Geladen: '+(S.bills.invoices||[]).filter(x=>!x.missing).length+' Jahresrechnungen'+(S.bills.provider?' der '+esc(S.bills.provider):'')+', am '+fmtDay(S.bills.loaded)+'. Eine neue Datei ersetzt die Preise und ergänzt fehlende Stände.':'Mit den Preisen aus deinen Jahresrechnungen berechnet die App Kosten, Preisentwicklung und die Prognose für die Abschläge.')+'</p>'+
   '<div class="stack"><button class="btn wide" data-act="addBill">'+ico('plus')+' Rechnung hinzufügen (PDF)</button></div><div class="stack two" style="margin-top:8px"><button class="btn sec" data-act="addBillMan">Von Hand eintragen</button><button class="btn sec" data-act="importBills">Rechnungsdatei laden</button></div>'+(S.bills?'<button class="btn ghost sm" data-act="dropBills" style="margin-top:6px;color:var(--bad)">Rechnungsdaten entfernen</button>':'')+'</section>'+
@@ -1876,9 +1878,19 @@ function exportIcs(){
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
  toast('Kalenderdatei wurde erstellt.');
 }
+const backupName=()=>'zaehlwerk-sicherung-'+new Date().toISOString().slice(0,10)+'.json';
+const backupText=()=>JSON.stringify({...packState(),saved:Date.now()},null,1);
+// Teilen-Menü des Geräts (iPhone: In Dateien sichern, AirDrop, Mail); ohne Teilen-Funktion wird die Datei gespeichert
+async function shareData(){
+ const txt=backupText();let f=null;
+ for(const type of ['application/json','text/plain']){const x=new File([txt],backupName(),{type});if(navigator.canShare&&navigator.canShare({files:[x]})){f=x;break}}
+ if(!f||!navigator.share)return exportData();
+ try{await navigator.share({files:[f],title:'Zählwerk-Sicherung'});S.set.lastBackup=Date.now();save();render();toast('Sicherung geteilt.')}
+ catch(e){if(e&&e.name==='AbortError')return;toast('Teilen nicht möglich, die Datei wird gespeichert.');exportData()}
+}
 function exportData(){
- const blob=new Blob([JSON.stringify(packState(),null,1)],{type:'application/json'}),a=document.createElement('a');
- a.href=URL.createObjectURL(blob);a.download='zaehlwerk-sicherung-'+new Date().toISOString().slice(0,10)+'.json';
+ const blob=new Blob([backupText()],{type:'application/json'}),a=document.createElement('a');
+ a.href=URL.createObjectURL(blob);a.download=backupName();
  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
  S.set.lastBackup=Date.now();save();render();toast('Sicherung wurde erstellt.');
 }
@@ -1887,9 +1899,18 @@ async function importFile(f){
  try{
   const o=JSON.parse(await f.text());
   if(!(o&&o.v&&Array.isArray(o.meters)&&Array.isArray(o.readings)))throw new Error('Das ist keine Zählwerk-Sicherung.');
-  const a=S.meters.length?await modal('<h3>Sicherung laden?</h3><p>Die aktuellen Daten werden durch die Sicherung ersetzt ('+o.meters.length+' Zähler, '+o.readings.length+' Ablesungen).</p><div class="row"><button class="btn" data-val="yes">Ersetzen</button><button class="btn sec" data-val="no">Abbrechen</button></div>'):'yes';
-  if(a!=='yes')return;
-  S=migrate(o);save();VIEW='home';render();toast('Sicherung geladen.');
+  const O=syNorm(o),L0=syExplode(S),F0=syExplode(O);
+  if(syIsEmpty(L0)){S=migrate(o);save();VIEW='home';render();return toast('Sicherung geladen.')}
+  const fmt=c=>c.r+' Ablesungen, '+c.m+' Zähler'+(c.h>1?', '+c.h+' Haushalte':''),cl=syCounts(L0),cf=syCounts(F0),when=o.saved||(o.sync&&o.sync.at)||(o.set&&o.set.lastBackup);
+  const a=await modal('<h3>Sicherung laden</h3><p class="mu sm"><b>Datei:</b> '+fmt(cf)+(when?', Stand '+fmtFull(when):'')+'.<br><b>Dieses Gerät:</b> '+fmt(cl)+'.</p>'+
+   '<div class="stack"><button class="btn wide" data-val="merge">Zusammenführen</button><button class="btn sec wide" data-val="replace">Ersetzen</button><button class="btn sec wide" data-val="no">Abbrechen</button></div>'+
+   '<details class="fold"><summary>Was bedeutet das?</summary><p><b>Zusammenführen</b> übernimmt aus der Datei, was neu oder jünger ist. Was auf diesem Gerät neuer ist, bleibt. Gelöschtes bleibt gelöscht.</p><p><b>Ersetzen</b> verwirft die Daten dieses Geräts und übernimmt die Datei.'+(SY.st?' Weil Dropbox verbunden ist, gilt das auch für Dropbox und alle anderen Geräte.':'')+'</p></details>');
+  if(a==='replace'){S=migrate(o);save();VIEW='home';render();return toast('Sicherung geladen.')}
+  if(a!=='merge')return;
+  syAlignHomes(O,S);
+  const L=syExplode(S),M=syMerge(L,syExplode(O)),n=syDiff(L,M);
+  if(n){syApply(M);if(SY.st){SY.st.dirty=1;saveSync();sySchedule(800)}}
+  VIEW='home';render();toast(n?'Zusammengeführt: '+n+(n===1?' Eintrag':' Einträge')+' übernommen.':'Die Sicherung enthält nichts Neues.');
  }catch(e){toast(e.message||'Die Datei ist nicht lesbar.')}
 }
 async function importCsvText(text){
@@ -2060,6 +2081,7 @@ const ACT={
  editReading:el=>editReading(el.dataset.id),
  editMeter:el=>editMeter(el.dataset.id),
  exportData:()=>exportData(),
+ shareData:()=>shareData(),
  importData:()=>$('#fimp').click(),
  importCsv:()=>$('#fcsv').click(),
  exportCsv:()=>exportCsv(),
@@ -2462,7 +2484,7 @@ function syAlignHomes(L,R){
   const mine=lm.get(h.id)||new Set();
   const t=rh.find(x=>!used.has(x.id)&&[...(rm.get(x.id)||[])].some(id=>mine.has(id)))||rh.find(x=>!used.has(x.id)&&String(x.name).toLowerCase()===String(h.name).toLowerCase());
   if(!t)continue;used.add(t.id);
-  if(L.home===h.id)L.home=t.id;h.id=t.id;n++;
+  if(L.home===h.id)L.home=t.id;h.id=t.id;if(!h.u&&t.created)h.created=t.created;n++;
  }
  return n;
 }
