@@ -129,6 +129,7 @@ dialog .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr)
 .srow{display:flex;align-items:center;gap:12px;width:100%;background:transparent;border:0;border-top:1px solid var(--line);padding:11px 4px;color:var(--tx);text-align:left;font:inherit;cursor:pointer;min-height:58px}
 .srow:first-child{border-top:0}
 .syhead{display:flex;align-items:center;gap:12px;margin:2px 0 8px}
+.systat.warn{color:var(--warn)}.systat.bad{color:var(--bad)}
 .kvl{border-top:1px solid var(--line);margin-top:4px}.kvr{display:flex;justify-content:space-between;gap:12px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px}.kvr>span:last-child{text-align:right}
 .codebox{font:600 15px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;user-select:all;-webkit-user-select:all}
 .si{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--glass);border:1px solid var(--line);color:var(--pri);flex:none}
@@ -248,7 +249,7 @@ tr.click{cursor:pointer}tr.click:active td{background:var(--glass)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.8.0'};
+const APP={name:'Zählwerk',version:'0.8.1'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -879,19 +880,19 @@ const TITLES={home:'Zählwerk',read:'Ablesen',hist:'Verlauf',ana:'Auswertung',se
 const KEY='zaehlwerk.v1';
 const blank=()=>({v:1,meters:[],readings:[],set:{theme:'dark',themeV:1},remind:[]});
 function migrate(o){
- if(!Array.isArray(o.remind))o.remind=[];try{fillNumbers(o.meters,o.readings)}catch(e){}o.set=o.set||{};if(!o.set.themeV){o.set.theme='dark';o.set.themeV=1}if(!o.set.theme)o.set.theme='dark';
+ if(!Array.isArray(o.remind))o.remind=[];if(!Array.isArray(o.del))o.del=[];try{fillNumbers(o.meters,o.readings)}catch(e){}o.set=o.set||{};if(!o.set.themeV){o.set.theme='dark';o.set.themeV=1}if(!o.set.theme)o.set.theme='dark';
  // Haushalte: der aktive Haushalt liegt in meters/readings/remind, die anderen tragen ihre Daten selbst
  if(!Array.isArray(o.homes)||!o.homes.length){o.homes=[{id:'h'+uid(),name:'Zuhause',created:Date.now()}];o.home=o.homes[0].id}
  if(!o.homes.some(h=>h.id===o.home))o.home=o.homes[0].id;
  for(const h of o.homes){if(h.id===o.home){delete h.meters;delete h.readings;delete h.remind;delete h.bills}else{h.meters=h.meters||[];h.readings=h.readings||[];h.remind=h.remind||[];try{fillNumbers(h.meters,h.readings)}catch(e){}}}
  return o}
-const packState=()=>({...S,homes:S.homes.map(h=>h.id===S.home?{id:h.id,name:h.name,created:h.created,...(h.arch?{arch:1}:{})}:h)});
+const packState=()=>({...S,homes:S.homes.map(h=>h.id===S.home?{id:h.id,name:h.name,created:h.created,...(h.arch?{arch:1}:{}),...(h.u?{u:h.u}:{})}:h)});
 function load(){
  try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&o.v&&Array.isArray(o.meters)&&Array.isArray(o.readings))return migrate(o)}catch(e){}
- return blank();
+ return migrate(blank());
 }
 let S=load();
-function save(){try{localStorage.setItem(KEY,JSON.stringify(packState()));return true}catch(e){toast('Speichern nicht möglich: '+e.message);return false}}
+function save(){try{syOnSave()}catch(e){}try{localStorage.setItem(KEY,JSON.stringify(packState()));return true}catch(e){toast('Speichern nicht möglich: '+e.message);return false}}
 const DB={
  db:null,
  open(){return new Promise(res=>{try{const r=indexedDB.open('zaehlwerk',1);r.onupgradeneeded=()=>r.result.createObjectStore('photos');r.onsuccess=()=>{DB.db=r.result;res(true)};r.onerror=()=>res(false)}catch(e){res(false)}})},
@@ -1219,7 +1220,7 @@ function viewHist(){
 async function editReading(id){
  const r=S.readings.find(x=>x.id===id);if(!r)return;const m=meterById(r.m);
  let img='';
- if(r.photo){const b=await DB.get(r.photo);if(b&&b!==true)img='<img class="cropimg" src="'+URL.createObjectURL(b)+'" alt="Foto der Ablesung">'}
+ if(r.photo){const b=await DB.get(r.photo);if(b&&b!==true)img='<img class="cropimg" src="'+URL.createObjectURL(b)+'" alt="Foto der Ablesung">';else img='<p class="mu sm">'+ico('photo','s')+' Foto auf anderem Gerät</p>'}
  const res=await modal('<h3>'+esc(m.name)+'</h3>'+img+
   '<label class="fld">Datum und Uhrzeit<input type="datetime-local" id="ed-t" value="'+toLocalInput(r.t)+'"></label>'+
   '<label class="fld">Zählerstand<input id="ed-v" inputmode="decimal" value="'+fmtValue(r.v,m.pre,m.dec)+'"></label>'+
@@ -1910,9 +1911,16 @@ function exportCsv(){
  toast('CSV-Datei wurde erstellt.');
 }
 async function wipe(){
+ let local=false;
+ if(SY.st){
+  const w=await modal('<h3>Alle Daten löschen?</h3><p class="mu sm">Dieses Gerät ist mit Dropbox verbunden.</p><div class="stack"><button class="btn danger wide" data-val="here">Nur auf diesem Gerät</button><button class="btn danger wide" data-val="all">Überall, auch in Dropbox</button><button class="btn sec wide" data-val="no">Abbrechen</button></div><details class="fold"><summary>Was ist der Unterschied?</summary><p><b>Nur auf diesem Gerät</b>: Das Gerät wird von Dropbox getrennt und dann geleert. Dropbox und die anderen Geräte behalten alles.</p><p><b>Überall</b>: Die Daten verschwinden auch aus Dropbox und von allen verbundenen Geräten.</p></details>');
+  if(w!=='here'&&w!=='all')return;
+  local=w==='here';
+ }
  const a=await modal('<h3>Alle Daten löschen?</h3><p>Alle Haushalte mit Zählern, Ablesungen und Fotos werden von diesem Gerät entfernt. Das lässt sich nicht rückgängig machen. Erstelle vorher eine Sicherung.</p><div class="row"><button class="btn danger" data-val="yes">Alles löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
  if(a!=='yes')return;
- S.readings.concat(...S.homes.map(h=>h.readings||[])).forEach(r=>{if(r.photo)DB.del(r.photo)});S=migrate(blank());A=null;H={mid:null,open:null};save();startSetup(true);toast('Alle Daten wurden gelöscht.');
+ if(local){const p=prov();if(p)await p.disconnect();SY.st=null;saveSync()}
+ S.readings.concat(...S.homes.map(h=>h.readings||[])).forEach(r=>{if(r.photo)DB.del(r.photo)});S=migrate(blank());if(local){S.del=[];SYH=null}A=null;H={mid:null,open:null};save();startSetup(true);toast('Alle Daten wurden gelöscht.');
 }
 
 /* ---------- Einrichtungsassistent ---------- */
@@ -1948,7 +1956,7 @@ function viewSetup(){
  const nav=(back,next,nl)=>'<div class="row">'+(back?'<button class="btn sec" data-act="wBack">Zurück</button>':'')+'<button class="btn" style="flex:1" data-act="'+next+'">'+(nl||'Weiter')+'</button></div>';
  if(W.step==='welcome'&&S.homes.length>1)return '<div class="hero"><div class="logo" aria-hidden="true"><i>0</i><i>7</i><i>6</i></div><h2 style="font-size:22px">„'+esc(homeOf().name)+'“ einrichten</h2><p class="mu">Der Haushalt startet leer. Richte jetzt den ersten Zähler ein.</p></div><div class="row" style="justify-content:center"><button class="btn" data-act="wStart">Los geht’s</button></div><div class="row" style="justify-content:center"><button class="btn ghost" data-act="wCancel">Später</button></div>';
  if(W.step==='welcome')return '<div class="hero"><div class="logo" aria-hidden="true"><i>0</i><i>7</i><i>6</i></div><h2 style="font-size:24px">Willkommen bei Zählwerk</h2><p class="mu">Zählerstände erfassen, prüfen und auswerten. Die App startet leer. Richte jetzt deinen ersten Zähler ein, das dauert etwa eine Minute.</p></div>'+
-  '<div class="row" style="justify-content:center"><button class="btn" data-act="wStart">Los geht’s</button></div><div class="row" style="justify-content:center"><button class="btn ghost" data-act="importData">Sicherung laden</button></div>';
+  '<div class="row" style="justify-content:center"><button class="btn" data-act="wStart">Los geht’s</button></div><div class="row" style="justify-content:center"><button class="btn ghost" data-act="syGoSync">Daten aus Dropbox holen</button><button class="btn ghost" data-act="importData">Sicherung laden</button></div>';
  if(W.step==='medium'){
   if(!W.name)wDefaults();
   const cnt=k=>S.meters.filter(m=>m.medium===k).length;
@@ -2147,7 +2155,7 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdat
 // Tokens liegen getrennt von den Daten unter eigenem Schlüssel. PKCE-Zwischenwerte ebenso.
 const SYNC_KEY='zaehlwerk.sync',PKCE_KEY='zaehlwerk.pkce';
 const SYNC_FILE='/zaehlwerk-daten.json';
-const SY={st:null,busy:false,check:null};
+var SY={st:null,busy:false,gen:0,timer:null,err:null};
 try{SY.st=JSON.parse(localStorage.getItem(SYNC_KEY))||null}catch(e){SY.st=null}
 function saveSync(){try{if(SY.st)localStorage.setItem(SYNC_KEY,JSON.stringify(SY.st));else localStorage.removeItem(SYNC_KEY)}catch(e){}}
 const redirectUri=()=>location.origin+location.pathname.replace(/index\.html$/,'');
@@ -2211,7 +2219,8 @@ const Dropbox={
   if(!r.ok)throw new SyncErr('Dropbox meldet: Fehler '+r.status);
   let meta={};try{meta=JSON.parse(r.headers.get('Dropbox-API-Result')||'{}')}catch(e){}
   const txt=await r.text();let data;try{data=JSON.parse(txt)}catch(e){throw new SyncErr('Die Datei in Dropbox ist beschädigt.')}
-  return{data,rev:meta.rev||''};
+  if(!meta.rev){const m=await this.meta();if(m){meta.rev=m.rev;meta.size=m.size;meta.server_modified=new Date(m.mod).toISOString()}}
+  return{data,rev:meta.rev||'',size:meta.size||txt.length,mod:Date.parse(meta.server_modified)||0};
  },
  // put(): {rev} oder {conflict:true}, wenn die Datei inzwischen von einem anderen Gerät geändert wurde
  async put(data,rev){
@@ -2220,15 +2229,17 @@ const Dropbox={
   const j=await r.json().catch(()=>({}));
   if(r.status===409&&/conflict/.test(JSON.stringify(j)))return{conflict:true};
   if(!r.ok)throw new SyncErr(dbxMsg(j,r.status));
-  return{rev:j.rev};
+  return{rev:j.rev,size:j.size||0,mod:Date.parse(j.server_modified)||Date.now()};
  },
  async disconnect(){try{await this.rpc('auth/token/revoke')}catch(e){}}
 };
 const SYNC_PROV={dropbox:Dropbox};
 const prov=()=>SY.st&&SYNC_PROV[SY.st.prov];
 
+const syStandalone=()=>navigator.standalone===true;
 async function syncConnect(){
  if(navigator.onLine===false)return toast('Für die Anmeldung braucht die App Internet.');
+ if(syStandalone())return syncCodeStart();
  location.assign(await Dropbox.authUrl(true));
 }
 async function syncCodeStart(){
@@ -2245,9 +2256,8 @@ async function syncFinish(code,pk){
   SY.st={prov:'dropbox',access:j.access_token,exp:Date.now()+(j.expires_in||14400)*1000,refresh:j.refresh_token,since:Date.now()};saveSync();
   try{SY.st.acct=await Dropbox.account();saveSync()}catch(e){}
   SY.codeOpen=false;toast('Mit Dropbox verbunden.');
-  await syncCheck(true);
- }catch(e){toast(e.message||'Anmeldung fehlgeschlagen.')}
- SY.busy=false;render();
+ }catch(e){toast(e.message||'Anmeldung fehlgeschlagen.');SY.busy=false;render();return}
+ SY.busy=false;render();syncNow(false);
 }
 async function syncCodeRedeem(){
  const el=$('#sy-code'),code=el?el.value.trim():'';
@@ -2292,42 +2302,289 @@ async function syncHandoff(code){
   '<div class="row"><button class="btn" data-val="copy">Code kopieren</button><button class="btn sec" data-val="close">Schließen</button></div>');
  if(r==='copy'){try{await navigator.clipboard.writeText(code);toast('Code kopiert.')}catch(e){toast('Bitte den Code von Hand markieren und kopieren.')}}
 }
-const syncSub=()=>{const s=SY.st;if(!s)return 'Aus';if(s.authErr)return 'Neu anmelden nötig';return 'Dropbox'+(s.acct&&s.acct.name?', '+esc(s.acct.name):'')};
+const syncSub=()=>{const s=SY.st;if(!s)return 'Aus';if(s.authErr)return 'Neu anmelden nötig';if(s.ask)return 'Wartet auf deine Entscheidung';return 'Dropbox'+(s.last?', abgeglichen '+syWhen(s.last):'')};
+const syWhen=t=>{const d=new Date(t),n=new Date();return d.toDateString()===n.toDateString()?d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})+' Uhr':fmtDay(t)};
 function viewSync(){
- const s=SY.st,busy=SY.busy?' disabled':'';
- const what='<section class="card"><details class="fold"><summary>Was wird abgeglichen?</summary><p>Alle Haushalte mit Zählern, Ablesungen, Erinnerungen und Rechnungsdaten. Gelöschtes bleibt auch auf den anderen Geräten gelöscht.</p><p><b>Pro Gerät</b> bleiben Darstellung, Auswertungsfilter, der gewählte Haushalt und die Mitteilungen.</p><p><b>Fotos</b> bleiben vorerst auf dem Gerät, mit dem sie aufgenommen wurden.</p><p>Die Sicherung als Datei funktioniert weiterhin unabhängig davon.</p></details></section>';
+ const s=SY.st,busy=SY.busy?' disabled':'',sa=syStandalone();
+ const what='<section class="card"><details class="fold"><summary>Was wird abgeglichen?</summary><p>Alle Haushalte mit Zählern, Ablesungen, Erinnerungen und Rechnungsdaten. Gelöschtes bleibt auch auf den anderen Geräten gelöscht. Wurde derselbe Eintrag auf zwei Geräten geändert, gilt die jüngere Änderung.</p><p><b>Pro Gerät</b> bleiben Darstellung, Auswertungsfilter, der gewählte Haushalt und die Mitteilungen.</p><p><b>Fotos</b> bleiben vorerst auf dem Gerät, mit dem sie aufgenommen wurden.</p><p><b>Wann?</b> Beim Öffnen der App, bei der Rückkehr in die App und kurz nach jeder Änderung. Ohne Internet merkt sich die App die Änderungen und holt den Abgleich nach.</p><p>Die Sicherung als Datei funktioniert weiterhin unabhängig davon.</p></details></section>';
  if(!s){
+  const codeArea='<label class="fld">Code<input id="sy-code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Code aus Dropbox einfügen"></label><button class="btn sec wide" data-act="syCodeRedeem"'+busy+'>Code einlösen</button>';
   return backBar('Synchronisation')+'<section class="card"><div class="syhead"><span class="si">'+ico('cloud')+'</span><span><b>Dropbox</b><br><span class="mu sm">Nicht verbunden</span></span></div>'+
    '<p class="mu sm">Mit Dropbox hast du dieselben Daten auf iPhone, iPad und PC. Die App bekommt in deiner Dropbox einen eigenen Ordner „Apps/Zählwerk“ und sieht nur diesen. Ohne Internet arbeitest du normal weiter.</p>'+
+   (sa?'<p class="mu sm"><b>So geht’s:</b> Dropbox öffnet sich, du meldest dich an und erlaubst den Zugriff. Dropbox zeigt dann einen Code. Kopiere ihn, schließe das Fenster und füge ihn hier ein.</p>':'')+
    '<button class="btn wide" data-act="syConnect"'+busy+'>'+(SY.busy?'Anmeldung läuft …':'Mit Dropbox verbinden')+'</button>'+
+   (sa?'<div style="margin-top:8px">'+codeArea+'</div>':
    '<details class="fold" style="margin-top:8px"'+(SY.codeOpen?' open':'')+'><summary>Klappt die Rückkehr in die App nicht?</summary><p>Dann meldest du dich ohne Rückkehr an und überträgst einen Code. Auch einen Code aus Safari fügst du hier ein.</p>'+
-   '<div class="stack"><button class="btn sec wide" data-act="syCodeStart"'+busy+'>Anmeldung mit Code öffnen</button></div>'+
-   '<label class="fld">Code<input id="sy-code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Code aus Dropbox einfügen"></label>'+
-   '<button class="btn sec wide" data-act="syCodeRedeem"'+busy+'>Code einlösen</button></details></section>'+what;
+   '<div class="stack"><button class="btn sec wide" data-act="syCodeStart"'+busy+'>Anmeldung mit Code öffnen</button></div>'+codeArea+'</details>')+'</section>'+what;
  }
  const a=s.acct||{},rm=s.remote;
  const kv=(k,v,c)=>'<div class="kvr"><span class="mu">'+k+'</span><span'+(c?' class="'+c+'"':'')+'>'+v+'</span></div>';
+ let stat,cls='';
+ if(SY.busy)stat='Abgleich läuft …';
+ else if(s.ask){stat='Wartet auf deine Entscheidung';cls='warn'}
+ else if(SY.err==='offline'){stat=s.dirty?'Kein Internet, Änderungen sind vorgemerkt':'Kein Internet';cls='warn'}
+ else if(SY.err){stat=esc(SY.err);cls='bad'}
+ else if(s.dirty)stat='Änderungen werden gleich abgeglichen';
+ else if(s.last)stat='Alles abgeglichen';
+ else stat='Noch nicht abgeglichen';
  return backBar('Synchronisation')+
   (s.authErr?'<div class="banner">'+ico('warn')+'<span>Dropbox hat die Anmeldung nicht mehr angenommen. Bitte trennen und neu verbinden.</span></div>':'')+
+  (s.ask&&!SY.busy?'<div class="banner">'+ico('warn')+'<span>In Dropbox und auf diesem Gerät liegen Daten. Tippe auf „Jetzt abgleichen“ und entscheide, wie sie zusammenkommen.</span></div>':'')+
   '<section class="card"><div class="syhead"><span class="si">'+ico('cloud')+'</span><span><b>Dropbox</b><br><span class="mu sm">'+(a.name?esc(a.name):'Verbunden')+(a.email?' · '+esc(a.email):'')+'</span></span></div>'+
-  '<div class="kvl">'+kv('Verbunden seit',fmtDay(s.since))+
-   kv('Datei in Dropbox',rm?'vom '+fmtFull(rm.mod)+', '+nf(rm.size/1024,0)+' KB':(s.checked?'noch keine':'unbekannt'))+
-   kv('Letzter Abgleich',s.last?fmtFull(s.last):'Testversion, folgt mit 0.8.1','mu')+
-   (s.checked?kv('Zuletzt geprüft',fmtFull(s.checked)):'')+'</div>'+
-  '<div class="stack two" style="margin-top:10px"><button class="btn sec" data-act="syCheck"'+busy+'>'+(SY.busy?'Prüfe …':'Verbindung prüfen')+'</button><button class="btn danger" data-act="syOff"'+busy+'>Trennen</button></div></section>'+what;
+  '<div class="kvl">'+kv('Status',stat,'systat '+cls)+
+   kv('Letzter Abgleich',s.last?fmtFull(s.last):'noch keiner')+
+   kv('Datei in Dropbox',rm?nf(rm.size/1024,0)+' KB, '+(rm.mod?'vom '+fmtFull(rm.mod):''):'noch keine')+
+   kv('Verbunden seit',fmtDay(s.since))+'</div>'+
+  '<div class="stack two" style="margin-top:10px"><button class="btn" data-act="syNow"'+busy+'>'+(SY.busy?'Gleiche ab …':'Jetzt abgleichen')+'</button><button class="btn danger" data-act="syOff"'+busy+'>Trennen</button></div></section>'+what;
 }
 Object.assign(ACT,{
  syConnect:()=>syncConnect(),
  syCodeStart:()=>syncCodeStart(),
  syCodeRedeem:()=>syncCodeRedeem(),
  syCheck:()=>syncCheck(false),
+ syNow:()=>syncNow(true),
+ syGoSync:()=>{SETP='sync';go('set')},
  syOff:()=>syncDisconnect()
 });
+
+// <sync>
+// Reine Funktionen für den Abgleich. Jeder Datensatz hat einen Schlüssel (Art:ID) und einen Änderungszeitstempel u.
+// Gelöschtes steht als Grabstein in del:[{id:Schlüssel,u}] und kommt dadurch nicht zurück.
+function syStable(x){
+ if(x===null||typeof x!=='object')return JSON.stringify(x===undefined?null:x);
+ if(Array.isArray(x))return '['+x.map(syStable).join(',')+']';
+ return '{'+Object.keys(x).filter(k=>x[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+syStable(x[k])).join(',')+'}';
+}
+const SY_BILL_KIDS=['tariffs','invoices','credits','pay','u'];
+function syBody(r){
+ const o=r.o;
+ if(r.kind==='h')return {id:o.id,name:o.name,created:o.created,arch:o.arch?1:0};
+ const c={};for(const k of Object.keys(o)){if(k==='u')continue;if(r.kind==='b'&&SY_BILL_KIDS.includes(k))continue;c[k]=o[k]}
+ return c;
+}
+function syHash(r){return syStable(syBody(r))}
+function syExplode(o){
+ const recs=new Map();
+ const add=(key,kind,h,obj,extra)=>{let k=key,n=2;while(recs.has(k))k=key+'#'+(n++);recs.set(k,Object.assign({kind,h,o:obj,u:+obj.u||0},extra||{}))};
+ for(const hm of (o.homes||[])){
+  const act=hm.id===o.home,H=hm.id;
+  add('h:'+H,'h',H,hm);
+  ((act?o.meters:hm.meters)||[]).forEach(x=>add('m:'+x.id,'m',H,x));
+  ((act?o.readings:hm.readings)||[]).forEach(x=>add('r:'+x.id,'r',H,x));
+  ((act?o.remind:hm.remind)||[]).forEach(x=>add('e:'+x.id,'e',H,x));
+  const b=act?o.bills:hm.bills;
+  if(b&&typeof b==='object'){
+   add('b:'+H,'b',H,b);
+   const tf=b.tariffs||{};
+   for(const med of Object.keys(tf))(tf[med]||[]).forEach(t=>add('t:'+H+':'+med+':'+t.from,'t',H,t,{med}));
+   (b.invoices||[]).forEach(i=>add('i:'+H+':'+(i.from||i.year)+':'+(i.to||''),'i',H,i));
+   (b.credits||[]).forEach(c=>add('c:'+H+':'+c.medium+':'+c.year+':'+(c.months||[]).join('.'),'c',H,c));
+   const pay=b.pay||{};for(const y of Object.keys(pay))if(pay[y]&&typeof pay[y]==='object')add('p:'+H+':'+y,'p',H,pay[y],{y});
+  }
+ }
+ const del=new Map();
+ for(const d of (o.del||[]))if(d&&d.id!=null&&!(del.get(d.id)>=d.u))del.set(d.id,+d.u||0);
+ return {recs,del};
+}
+function syMerge(A,B){
+ const del=new Map(A.del);
+ B.del.forEach((u,k)=>{if(!(del.get(k)>=u))del.set(k,u)});
+ const recs=new Map(),keys=[...A.recs.keys()];
+ B.recs.forEach((_,k)=>{if(!A.recs.has(k))keys.push(k)});
+ for(const k of keys){
+  const a=A.recs.get(k),b=B.recs.get(k);let w=a||b;
+  if(a&&b)w=a.u!==b.u?(a.u>b.u?a:b):(syHash(a)>=syHash(b)?a:b);
+  const d=del.get(k);
+  if(d!=null){if(d>=w.u)continue;del.delete(k)}
+  recs.set(k,w);
+ }
+ // Waisen entfernen: Datensätze ohne Haushalt, Ablesungen ohne Zähler
+ const meterIds=new Set();recs.forEach(r=>{if(r.kind==='m')meterIds.add(r.h+'|'+r.o.id)});
+ for(const [k,r] of [...recs]){
+  if(r.kind!=='h'&&!recs.has('h:'+r.h))recs.delete(k);
+  else if(r.kind==='r'&&!meterIds.has(r.h+'|'+r.o.m))recs.delete(k);
+ }
+ // doppelte Ablesungen (gleicher Zähler, Zeitpunkt und Stand, verschiedene IDs) zusammenfassen
+ const seen=new Map();
+ for(const [k,r] of [...recs]){
+  if(r.kind!=='r')continue;
+  const nk=r.h+'|'+r.o.m+'|'+r.o.t+'|'+r.o.v,o=seen.get(nk);
+  if(o==null){seen.set(nk,k);continue}
+  const keep=o<k?o:k,drop=o<k?k:o,dr=recs.get(drop);
+  recs.delete(drop);seen.set(nk,keep);if(!(del.get(drop)>=dr.u))del.set(drop,dr.u);
+ }
+ return {recs,del};
+}
+// Anzahl Datensätze, in denen sich X vom Ergebnis M unterscheidet
+function syDiff(X,M){
+ let n=0;
+ M.recs.forEach((r,k)=>{const x=X.recs.get(k);if(!x||syHash(x)!==syHash(r))n++});
+ X.recs.forEach((_,k)=>{if(!M.recs.has(k))n++});
+ return n;
+}
+function syImplode(M,set,home){
+ const homes=[],by=new Map();
+ M.recs.forEach(r=>{if(r.kind!=='h')return;const o=r.o,h={id:o.id,name:o.name,created:o.created};if(o.arch)h.arch=o.arch;if(r.u)h.u=r.u;h.meters=[];h.readings=[];h.remind=[];h._b=null;h._k=null;homes.push(h);by.set(h.id,h)});
+ homes.sort((a,b)=>(a.created||0)-(b.created||0));
+ M.recs.forEach(r=>{
+  const h=by.get(r.h);if(!h||r.kind==='h')return;
+  if(r.kind==='m')h.meters.push(r.o);else if(r.kind==='r')h.readings.push(r.o);else if(r.kind==='e')h.remind.push(r.o);
+  else if(r.kind==='b')h._b=r.o;
+  else{h._k=h._k||{t:{},i:[],c:[],p:{}};if(r.kind==='t')(h._k.t[r.med]=h._k.t[r.med]||[]).push(r.o);else if(r.kind==='i')h._k.i.push(r.o);else if(r.kind==='c')h._k.c.push(r.o);else if(r.kind==='p')h._k.p[r.y]=r.o}
+ });
+ for(const h of homes){
+  h.readings.sort((a,b)=>a.t-b.t);
+  if(h._b||h._k){
+   const b={},src=h._b||{},k=h._k||{t:{},i:[],c:[],p:{}};
+   for(const key of Object.keys(src))if(!SY_BILL_KIDS.includes(key)||key==='u')b[key]=src[key];
+   b.tariffs={};Object.keys(k.t).forEach(m=>{b.tariffs[m]=k.t[m].sort((x,y)=>String(x.from).localeCompare(String(y.from)))});
+   b.invoices=k.i.sort((x,y)=>String(x.from||x.year).localeCompare(String(y.from||y.year)));
+   b.credits=k.c.sort((x,y)=>(x.year-y.year)||String(x.medium).localeCompare(String(y.medium)));
+   if('pay' in src||Object.keys(k.p).length)b.pay=k.p;
+   h.bills=b;
+  }else h.bills=null;
+  delete h._b;delete h._k;
+ }
+ const out={v:1,set:set||{},homes,del:[...M.del].map(([id,u])=>({id,u}))};
+ const act=homes.find(h=>h.id===home)||homes[0];
+ if(act){
+  out.home=act.id;out.meters=act.meters;out.readings=act.readings;out.remind=act.remind;out.bills=act.bills;
+  delete act.meters;delete act.readings;delete act.remind;delete act.bills;
+ }else{out.meters=[];out.readings=[];out.remind=[]}
+ return JSON.parse(JSON.stringify(out));
+}
+// Erste Verbindung: Haushalte, die es auf beiden Seiten gibt (gleiche Zähler oder gleicher Name), bekommen dieselbe ID
+function syAlignHomes(L,R){
+ const rh=R.homes||[],used=new Set(),ids=o=>{const m=new Map();for(const h of o.homes||[])m.set(h.id,new Set(((h.id===o.home?o.meters:h.meters)||[]).map(x=>x.id)));return m};
+ const lm=ids(L),rm=ids(R);let n=0;
+ for(const h of L.homes||[]){
+  if(rh.some(x=>x.id===h.id)){used.add(h.id);continue}
+  const mine=lm.get(h.id)||new Set();
+  const t=rh.find(x=>!used.has(x.id)&&[...(rm.get(x.id)||[])].some(id=>mine.has(id)))||rh.find(x=>!used.has(x.id)&&String(x.name).toLowerCase()===String(h.name).toLowerCase());
+  if(!t)continue;used.add(t.id);
+  if(L.home===h.id)L.home=t.id;h.id=t.id;n++;
+ }
+ return n;
+}
+function syIsEmpty(E){let e=true;E.recs.forEach(r=>{if(r.kind!=='h'&&r.kind!=='e')e=false});return e}
+function syCounts(E){const c={h:0,m:0,r:0,i:0};E.recs.forEach(r=>{if(c[r.kind]!=null)c[r.kind]++});return c}
+// </sync>
+
+/* ---------- Abgleich: Zeitstempel, Ablauf, Auslöser ---------- */
+let SYH=null; // Fingerabdrücke des zuletzt gespeicherten Stands
+function syBaseline(){SYH=new Map();syExplode(S).recs.forEach((r,k)=>SYH.set(k,syHash(r)))}
+function syStamp(){
+ if(!SYH){syBaseline();return 0}
+ const now=Date.now(),E=syExplode(S),nh=new Map();let ch=0;
+ if(!Array.isArray(S.del))S.del=[];
+ E.recs.forEach((r,k)=>{const h=syHash(r);nh.set(k,h);if(SYH.get(k)!==h){r.o.u=now;ch++;const i=S.del.findIndex(d=>d.id===k);if(i>=0)S.del.splice(i,1)}});
+ SYH.forEach((_,k)=>{if(!nh.has(k)){ch++;const d=S.del.find(x=>x.id===k);if(d)d.u=now;else S.del.push({id:k,u:now})}});
+ SYH=nh;if(ch)SY.gen++;
+ return ch;
+}
+function syOnSave(){
+ if(!SY)return;
+ if(syStamp()&&SY.st){SY.st.dirty=1;saveSync();sySchedule(2500)}
+}
+function sySchedule(ms){if(!SY||!SY.st)return;clearTimeout(SY.timer);SY.timer=setTimeout(()=>syncNow(false),ms)}
+const syUiBusy=()=>{const d=$('#dlg');return !!(d&&d.open)||VIEW==='read'||VIEW==='setup'};
+const syNorm=data=>migrate(JSON.parse(JSON.stringify(data||{v:1,meters:[],readings:[]})));
+function syFile(){const o=packState();o.set={};o.sync={fmt:1,at:Date.now(),app:APP.version};return o}
+function syWrite(){try{localStorage.setItem(KEY,JSON.stringify(packState()))}catch(e){toast('Speichern nicht möglich: '+e.message)}}
+// Ergebnis übernehmen, ohne neue Zeitstempel zu vergeben
+function syApply(M){
+ const prevHome=S.home;
+ S=migrate(syImplode(M,S.set,S.home));
+ if(S.home!==prevHome){K={year:null,sel:null,med:'strom'};H={mid:null,open:null};if(A){A.mid=null;A.years=null;A.pa=null;A.pb=null;A.sel=null}}
+ if(R.mid&&!meterById(R.mid))R.mid=null;
+ if(H.mid&&!meterById(H.mid))H.mid=null;
+ if(A&&A.mid&&!meterById(A.mid))A.mid=null;
+ syWrite();syBaseline();
+}
+function syRedraw(){if(!syUiBusy())render();else SY.redraw=true}
+async function syPut(p,rev){const r=await p.put(syFile(),rev);if(!r.conflict){SY.st.rev=r.rev;SY.st.remote={rev:r.rev,size:r.size||0,mod:r.mod||Date.now()}}return r}
+// Erste Verbindung: Dropbox leer → hochladen; Gerät leer → übernehmen; beide mit Daten → fragen
+async function syFirstRun(p,meta){
+ const s=SY.st;
+ if(!meta){const r=await syPut(p,null);if(r.conflict)return 'retry';s.init=1;s.dirty=0;return 'up'}
+ const rem=await p.get();if(!rem)return 'retry';
+ const RS=syNorm(rem.data);if(syAlignHomes(S,RS)){syWrite();syBaseline()}
+ const L=syExplode(S),RX=syExplode(RS);
+ if(syIsEmpty(RX)){const r=await syPut(p,rem.rev);if(r.conflict)return 'retry';s.init=1;s.dirty=0;return 'up'}
+ if(syIsEmpty(L)){
+  const o=syNorm(rem.data);o.set=S.set;S=migrate(o);syWrite();syBaseline();K={year:null,sel:null,med:'strom'};H={mid:null,open:null};A=null;R.mid=null;
+  s.rev=rem.rev;s.remote={rev:rem.rev,size:rem.size||0,mod:rem.mod||0};s.init=1;s.dirty=0;
+  if(VIEW==='setup')VIEW='home';return 'down';
+ }
+ if($('#dlg').open){SY.postponed=true;return 'wait'}
+ const cl=syCounts(L),cr=syCounts(RX),fmt=c=>c.r+' Ablesungen, '+c.m+' Zähler'+(c.h>1?', '+c.h+' Haushalte':'');
+ const ch=await modal('<h3>In Dropbox liegen schon Daten</h3><p class="mu sm"><b>Dieses Gerät:</b> '+fmt(cl)+'.<br><b>Dropbox:</b> '+fmt(cr)+(rem.mod?', Stand '+fmtFull(rem.mod):'')+'.</p>'+
+  '<div class="stack"><button class="btn wide" data-val="merge">Zusammenführen</button><button class="btn sec wide" data-val="remote">Dropbox übernehmen</button><button class="btn sec wide" data-val="local">Dieses Gerät übernehmen</button></div>'+
+  '<details class="fold"><summary>Was bedeutet das?</summary><p><b>Zusammenführen</b> behält alles von beiden Seiten. Gleiche Ablesungen erscheinen nur einmal.</p><p><b>Dropbox übernehmen</b> ersetzt die Daten auf diesem Gerät.</p><p><b>Dieses Gerät übernehmen</b> ersetzt die Daten in Dropbox und auf allen anderen verbundenen Geräten.</p></details>'+
+  '<div class="row"><button class="btn ghost" data-val="later">Später entscheiden</button></div>');
+ if(ch!=='merge'&&ch!=='remote'&&ch!=='local'){s.ask=1;return 'wait'}
+ delete s.ask;
+ if(ch==='remote'){const o=syNorm(rem.data);o.set=S.set;S=migrate(o);syWrite();syBaseline();A=null;R.mid=null;H={mid:null,open:null};s.rev=rem.rev;s.init=1;s.dirty=0;return 'down'}
+ if(ch==='merge')syApply(syMerge(L,RX));
+ else{const now=Date.now();if(!Array.isArray(S.del))S.del=[];RX.recs.forEach((_,k)=>{if(!L.recs.has(k))S.del.push({id:k,u:now})});RX.del.forEach((u,k)=>{if(!S.del.some(d=>d.id===k))S.del.push({id:k,u})});syWrite()}
+ const r=await syPut(p,rem.rev);if(r.conflict)return 'retry';
+ s.init=1;s.dirty=0;return ch;
+}
+async function syncNow(manual){
+ const s=SY.st,p=prov();if(!s||!p)return;
+ if(s.authErr){if(manual)toast('Bitte Dropbox trennen und neu verbinden.');return}
+ if(SY.busy){SY.again=true;return}
+ if(navigator.onLine===false){SY.err='offline';if(manual)toast('Keine Internetverbindung. Der Abgleich wird nachgeholt.');if(VIEW==='set')syRedraw();return}
+ SY.busy=true;SY.err=null;SY.postponed=false;if(VIEW==='set'&&SETP==='sync')syRedraw();
+ let got=0,res='';
+ try{
+  for(let i=0;i<4;i++){
+   const gen=SY.gen,meta=await p.meta();
+   if(!s.init){
+    res=await syFirstRun(p,meta);if(res==='retry')continue;break;
+   }
+   if(meta&&meta.rev===s.rev){
+    s.remote=meta;
+    if(!s.dirty)break;
+    const r=await syPut(p,s.rev);if(r.conflict)continue;
+    if(SY.gen===gen)s.dirty=0;break;
+   }
+   if(!meta){const r=await syPut(p,null);if(r.conflict)continue;if(SY.gen===gen)s.dirty=0;break}
+   const rem=await p.get();if(!rem)continue;
+   const L=syExplode(S),RX=syExplode(syNorm(rem.data)),M=syMerge(L,RX);
+   const chL=syDiff(L,M),chR=syDiff(RX,M);
+   if(chL){
+    if(syUiBusy()){SY.postponed=true;break}
+    if(SY.gen!==gen)continue;
+    syApply(M);got+=chL;
+   }
+   if(chR){const r=await syPut(p,rem.rev);if(r.conflict)continue}
+   else{s.rev=rem.rev;s.remote=meta}
+   if(SY.gen===gen)s.dirty=0;break;
+  }
+  if(!SY.postponed&&res!=='wait')s.last=Date.now();
+ }catch(e){SY.err=e.kind==='offline'?'offline':(e.message||'Abgleich fehlgeschlagen.');if(manual&&e.kind!=='offline')toast(SY.err)}
+ SY.busy=false;saveSync();
+ if(res==='up')toast('Daten in Dropbox gesichert.');
+ else if(res==='down')toast('Daten aus Dropbox übernommen.');
+ else if(res==='merge')toast('Daten zusammengeführt.');
+ else if(res==='local')toast('Dropbox enthält jetzt die Daten dieses Geräts.');
+ else if(got)toast('Abgleich: '+got+(got===1?' Änderung':' Änderungen')+' übernommen.');
+ else if(manual&&!SY.err&&!SY.postponed&&res!=='wait')toast('Alles abgeglichen.');
+ if(res&&res!=='wait'||got||VIEW==='set')syRedraw();
+ if(SY.postponed)sySchedule(4000);
+ if(SY.again){SY.again=false;sySchedule(600)}
+}
 
 /* ---------- Start ---------- */
 buildTabs();applyTheme();
 DB.open().then(()=>{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})});
+syBaseline();
 if(syncReturn())render();else if(!S.meters.length)startSetup(true);else render();
+if(SY.st)setTimeout(()=>syncNow(false),1200);
+document.addEventListener('visibilitychange',()=>{if(!SY.st)return;if(!document.hidden)sySchedule(400);else if(SY.st.dirty)syncNow(false)});
+window.addEventListener('online',()=>sySchedule(800));
+window.addEventListener('offline',()=>{if(SY.st){SY.err='offline';if(VIEW==='set')syRedraw()}});
 setTimeout(checkUpdate,1500);setTimeout(showBackdrop,250);
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
  const hadSW=!!navigator.serviceWorker.controller;
