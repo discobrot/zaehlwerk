@@ -14,13 +14,13 @@
 <title>Zählwerk</title>
 <style>
 :root{color-scheme:dark;--bg:#15171B;--card:#24272D;--card2:#1B1D22;--line:rgba(255,255,255,.10);--glass:rgba(255,255,255,.06);--tx:#EEF1F4;--mu:#A2AAB4;--pri:#B6E65A;--onpri:#17210A;--lime:#B6E65A;--bad:#FF6B61;--warn:#F2B21B;--shadow:0 6px 18px rgba(0,0,0,.35);--tabbg:rgba(22,24,28,.74);
---c-gas:#E8731A;--c-strom:#F2B21B;--c-wasser:#3D8BFF;--c-himmel:#7CC8FF;--c-gruen:#43C463;--c-garten:#B08CF2;--c-waerme:#EC6FB0;--c-misc:#9AA7A1;--c-cyan:#4FD1E0;--c-sand:#C9A27A;
+--c-gas:#E8731A;--c-strom:#F2B21B;--c-wasser:#3D8BFF;--c-himmel:#7CC8FF;--c-gruen:#43C463;--c-garten:#B08CF2;--c-waerme:#EC6FB0;--c-misc:#9AA7A1;--c-solar:#FFE066;--c-cyan:#4FD1E0;--c-sand:#C9A27A;
 --bg-art:radial-gradient(90% 38% at 100% 0%,rgba(34,211,238,.13) 0%,transparent 62%),radial-gradient(80% 42% at 0% 100%,rgba(236,72,153,.10) 0%,transparent 64%),radial-gradient(70% 30% at 40% 0%,rgba(255,255,255,.05) 0%,transparent 70%),linear-gradient(180deg,#1B1E23 0%,#15171B 55%,#0F1114 100%);
 --card-art:linear-gradient(160deg,rgba(255,255,255,.09) 0%,rgba(255,255,255,.035) 100%);--entry-bg:linear-gradient(160deg,rgba(46,50,58,.97),rgba(30,33,39,.97));
 --btn-art:linear-gradient(180deg,#CFF58A 0%,#B6E65A 50%,#9CCE40 100%);--glow:0 4px 14px rgba(182,230,90,.22);
 --roll:linear-gradient(180deg,#FFFFFF 0%,#ECEAE3 100%);--roll-r:linear-gradient(180deg,#EC6157 0%,#CB3C33 100%)}
 html[data-theme=light]{color-scheme:light;--bg:#ECEEF2;--card:#FFFFFF;--card2:#E4E7EC;--line:rgba(20,23,28,.14);--glass:rgba(20,23,28,.04);--tx:#14171C;--mu:#555E69;--pri:#4F7A00;--onpri:#FFFFFF;--lime:#4F7A00;--bad:#C62F26;--warn:#8A6100;--shadow:0 4px 14px rgba(20,23,28,.10);--tabbg:rgba(255,255,255,.80);
---c-gas:#C95A0A;--c-strom:#B07800;--c-wasser:#1F63D8;--c-himmel:#1B86C9;--c-gruen:#1F8F3F;--c-garten:#7A52D6;--c-waerme:#C23E85;--c-misc:#5C6B64;--c-cyan:#0E8FA3;--c-sand:#8F6A3D;
+--c-gas:#C95A0A;--c-strom:#B07800;--c-wasser:#1F63D8;--c-himmel:#1B86C9;--c-gruen:#1F8F3F;--c-garten:#7A52D6;--c-waerme:#C23E85;--c-misc:#5C6B64;--c-solar:#8F7400;--c-cyan:#0E8FA3;--c-sand:#8F6A3D;
 --bg-art:radial-gradient(90% 38% at 100% 0%,rgba(14,165,200,.14) 0%,transparent 62%),radial-gradient(80% 42% at 0% 100%,rgba(219,39,119,.08) 0%,transparent 64%),linear-gradient(180deg,#F4F6F9 0%,#E6E9EE 100%);
 --card-art:linear-gradient(160deg,rgba(255,255,255,.95) 0%,rgba(255,255,255,.74) 100%);--entry-bg:rgba(255,255,255,.97);
 --btn-art:linear-gradient(180deg,#76A818 0%,#5C8A06 50%,#4A7400 100%);--glow:0 4px 12px rgba(79,122,0,.25)}
@@ -225,6 +225,11 @@ details.bf[open]{padding-bottom:10px}
 .bper{border-top:1px dashed var(--line);padding-top:6px;margin-top:4px}
 tr.click{cursor:pointer}tr.click:active td{background:var(--glass)}
 .kpay{width:100%;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;margin:0 0 8px;border-radius:12px;border:1px solid color-mix(in srgb,var(--pri) 45%,transparent);background:color-mix(in srgb,var(--pri) 8%,transparent);color:var(--tx);font:inherit;cursor:pointer;text-align:left}
+.rlab{display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;color:var(--mu);margin:2px 4px -5px;letter-spacing:.3px}.rlab b{color:var(--tx);font-weight:650;font-size:12.5px}
+.solkpi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 6px}.solkpi div{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:7px 11px;display:flex;flex-direction:column;min-width:0}
+.solkpi b{font-size:18px;font-variant-numeric:tabular-nums;white-space:nowrap}.solkpi small{color:var(--mu);font-size:12px}
+.sbar{height:7px;border-radius:5px;background:var(--line);overflow:hidden;margin:5px 0 2px}.sbar i{display:block;height:100%;background:var(--mc);border-radius:5px}
+.prow{padding:8px 2px;border-top:1px solid var(--line)}.prow:first-of-type{border-top:0}.prow .trow{font-size:14px}
 .kpay>span:first-child{display:flex;flex-direction:column}.kpay b{font-size:19px;font-variant-numeric:tabular-nums}.kpay .right{text-align:right}
 </style>
 </head>
@@ -249,7 +254,7 @@ tr.click{cursor:pointer}tr.click:active td{background:var(--glass)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.8.2'};
+const APP={name:'Zählwerk',version:'0.9.0'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -366,9 +371,9 @@ function intervalsOf(rs){
  return out;
 }
 // Plausibilitätsprüfung einer neuen Ablesung
-function checkReading(rs,v,t,dec){
- const w=[],s=[...rs].sort((a,b)=>a.t-b.t),d=dec==null?2:dec;
- if(s.some(r=>Math.abs(r.t-t)<600000))w.push({k:'dup',text:'Zu diesem Zeitpunkt gibt es schon eine Ablesung.'});
+function checkReading(rs,v,t,dec,opt){
+ const w=[],s=[...rs].sort((a,b)=>a.t-b.t),d=dec==null?2:dec,o=opt||{};
+ if(!o.noDup&&s.some(r=>Math.abs(r.t-t)<600000))w.push({k:'dup',text:'Zu diesem Zeitpunkt gibt es schon eine Ablesung.'});
  const prev=s.filter(r=>r.t<t).pop(),next=s.find(r=>r.t>t);
  if(prev){
   const days=(t-prev.t)/DAY;
@@ -376,7 +381,7 @@ function checkReading(rs,v,t,dec){
   else{
    if(v===prev.v&&days>20)w.push({k:'same',text:'Der Stand ist seit '+Math.round(days)+' Tagen unverändert.'});
    const rates=intervalsOf(s.filter(r=>r.t<=prev.t)).filter(x=>!x.est&&x.days>=5).slice(-3).map(x=>x.rate);
-   if(days>=3&&rates.length>=3){
+   if(!o.noRate&&days>=3&&rates.length>=3){
     const a=avg(rates),r=(v-prev.v)/days;
     if(a>0&&r>a*4)w.push({k:'high',text:'Verbrauch pro Tag: '+nf(r,2)+'. In den letzten Zeiträumen waren es im Schnitt '+nf(a,2)+'. Das fällt auf, bitte prüfe die Stellen. (Im Herbst und Frühjahr ist ein Sprung beim Heizen normal.)'});
     else if(a>0&&v>prev.v&&r<a*0.1)w.push({k:'lowuse',text:'Verbrauch pro Tag: '+nf(r,2)+'. In den letzten Zeiträumen waren es im Schnitt '+nf(a,2)+'. Das fällt auf, bitte prüfe die Stellen.'});
@@ -453,13 +458,13 @@ function parseDeDate(x){
  return m?new Date(+m[1],m[2]-1,+m[3],+(m[4]||12),+(m[5]||0)).getTime():null;
 }
 function parseCsvReadings(text){
- const rows=[],bad=[];let col={n:0,d:1,s:2,nr:-1,e:-1,a:-1};
+ const rows=[],bad=[];let col={n:0,d:1,s:2,nr:-1,e:-1,a:-1,f2:-1,e2:-1,a2:-1};
  String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/).forEach((ln,i)=>{
   if(!ln.trim())return;
   const c=ln.split(/[;\t]/);
   if(i===0&&/stand/i.test(ln)&&/datum/i.test(ln)){
-   const h=c.map(x=>x.trim().toLowerCase()),f=re=>h.findIndex(x=>re.test(x));
-   col={n:Math.max(0,f(/^z(ä|ae)hler$|^name$/)),d:f(/datum/),s:f(/^stand/),nr:f(/nummer|^nr/),e:f(/endstand/),a:f(/anfangsstand/)};
+   const h=c.map(x=>x.trim().toLowerCase()),f=re=>h.findIndex(x=>re.test(x)),fx=re=>h.findIndex(x=>re.test(x)&&!/einspeis/.test(x));
+   col={n:Math.max(0,f(/^z(ä|ae)hler$|^name$/)),d:f(/datum/),s:f(/^stand/),nr:f(/nummer|^nr/),e:fx(/endstand/),a:fx(/anfangsstand/),f2:f(/^einspeisung$/),e2:f(/endstand einspeis/),a2:f(/anfangsstand einspeis/)};
    if(col.d<0)col.d=1;if(col.s<0)col.s=2;
    return;
   }
@@ -469,23 +474,26 @@ function parseCsvReadings(text){
   const nr=col.nr>=0&&c[col.nr]?String(c[col.nr]).trim():'',name=String(c[col.n]).trim();
   const row=nr?{name,t,v,nr}:{name,t,v},ev=col.e>=0?parseDeNum(c[col.e]):null,av=col.a>=0?parseDeNum(c[col.a]):null;
   if(ev!=null)row.end=ev;if(av!=null)row.start=av;
+  const g=k=>col[k]>=0?parseDeNum(c[col[k]]):null,v2=g('f2'),e2=g('e2'),a2=g('a2');
+  if(v2!=null)row.v2=v2;if(e2!=null)row.end2=e2;if(a2!=null)row.start2=a2;
   rows.push(row);
  });
  return {rows,bad};
 }
 function mergeReadings(meters,readings,rows,newId){
- const added=[],dup=[],unknown=new Set();let numbers=0;
+ const added=[],dup=[],unknown=new Set();let numbers=0,feed=0;
  const find=n=>{const k=String(n).toLowerCase();return meters.find(m=>m.name.toLowerCase()===k)||meters.find(m=>(m.number||'').toLowerCase()===k)};
  for(const r of rows){
   const m=find(r.name);
   if(!m){unknown.add(r.name);continue}
   const ex=readings.find(x=>x.m===m.id&&Math.abs(x.t-r.t)<600000);
-  if(ex){dup.push(r);if(r.nr&&(!ex.nr||ex.nrAuto)){ex.nr=r.nr;delete ex.nrAuto;numbers++}if(r.end!=null&&ex.end==null){ex.w=1;ex.end=r.end;ex.start=r.start!=null?r.start:(ex.start||0);numbers++}continue}
+  if(ex){dup.push(r);if(r.nr&&(!ex.nr||ex.nrAuto)){ex.nr=r.nr;delete ex.nrAuto;numbers++}if(r.end!=null&&ex.end==null){ex.w=1;ex.end=r.end;ex.start=r.start!=null?r.start:(ex.start||0);numbers++}if(r.v2!=null&&ex.v2==null){ex.v2=r.v2;if(r.end2!=null)ex.end2=r.end2;if(r.start2!=null)ex.start2=r.start2;feed++}continue}
   const nr={id:newId(),m:m.id,t:r.t,v:r.v};if(r.nr)nr.nr=r.nr;
   if(r.end!=null||r.start!=null){nr.w=1;if(r.end!=null)nr.end=r.end;nr.start=r.start!=null?r.start:0}
+  if(r.v2!=null){nr.v2=r.v2;if(nr.w){if(r.end2!=null)nr.end2=r.end2;if(r.start2!=null)nr.start2=r.start2}}
   readings.push(nr);added.push(nr);
  }
- return {added,dup,unknown:[...unknown],numbers};
+ return {added,dup,unknown:[...unknown],numbers,feed};
 }
 // Zählerwechsel erkennen: fallender Stand oder geänderte Zählernummer; überholte Markierungen ohne Endstand entfernen
 function normalizeSwaps(meters,readings){
@@ -495,8 +503,9 @@ function normalizeSwaps(meters,readings){
   rs.forEach((r,i)=>{
    const prev=rs[i-1];if(!prev)return;
    const numDiff=!!(prev.nr&&r.nr&&prev.nr!==r.nr&&!prev.nrAuto&&!r.nrAuto);
-   if(r.w&&r.end==null&&r.v>=prev.v&&!numDiff){delete r.w;delete r.start;cleared++}
-   else if(!r.w&&(r.v<prev.v||numDiff)){r.w=1;r.start=0;marked++}
+   const fall=r.v<prev.v||(r.v2!=null&&prev.v2!=null&&r.v2<prev.v2);
+   if(r.w&&r.end==null&&r.end2==null&&!fall&&!numDiff){delete r.w;delete r.start;delete r.start2;cleared++}
+   else if(!r.w&&(fall||numDiff)){r.w=1;r.start=0;marked++}
   });
  }
  return {marked,cleared};
@@ -519,10 +528,10 @@ function fillNumbers(meters,readings){
 }
 function buildCsv(meters,readings){
  const z=n=>String(n).padStart(2,'0'),fd=t=>{const d=new Date(t);return z(d.getDate())+'.'+z(d.getMonth()+1)+'.'+d.getFullYear()+' '+z(d.getHours())+':'+z(d.getMinutes())};
- const L=['Zähler;Datum;Stand;Zählernummer;Einheit;Verbrauch;Tage;Endstand alt;Anfangsstand neu'];
+ const L=['Zähler;Datum;Stand;Zählernummer;Einheit;Verbrauch;Tage;Endstand alt;Anfangsstand neu;Einspeisung;Endstand Einspeisung alt;Anfangsstand Einspeisung neu'];
  for(const m of meters){
   const rs=readings.filter(r=>r.m===m.id).sort((a,b)=>a.t-b.t),by=new Map(intervalsOf(rs).map(x=>[x.b.id,x]));
-  for(const r of rs){const x=by.get(r.id);L.push([m.name,fd(r.t),fmtValue(r.v,m.pre,m.dec),r.nr||'',m.unit,x?String(+x.cons.toFixed(3)).replace('.',','):'',x?String(Math.round(x.days)):'',r.w&&r.end!=null?fmtValue(r.end,m.pre,m.dec):'',r.w?fmtValue(r.start||0,m.pre,m.dec):''].join(';'))}
+  for(const r of rs){const x=by.get(r.id);L.push([m.name,fd(r.t),fmtValue(r.v,m.pre,m.dec),r.nr||'',m.unit,x?String(+x.cons.toFixed(3)).replace('.',','):'',x?String(Math.round(x.days)):'',r.w&&r.end!=null?fmtValue(r.end,m.pre,m.dec):'',r.w?fmtValue(r.start||0,m.pre,m.dec):'',r.v2!=null?fmtValue(r.v2,m.pre,m.dec):'',r.w&&r.end2!=null?fmtValue(r.end2,m.pre,m.dec):'',r.w&&r.v2!=null?fmtValue(r.start2||0,m.pre,m.dec):''].join(';'))}
  }
  return '\uFEFF'+L.join('\r\n');
 }
@@ -818,6 +827,71 @@ function parseInvoice(lines){
  ['strom','gas','wasser','abwasser'].forEach(k=>{if(!inv.m[k])res.warn.push(k+': Betrag nicht gefunden');if(!res.tariffs[k]||!res.tariffs[k].length)res.warn.push(k+': Preise nicht gefunden')});
  return res;
 }
+// ---- PV, Balkonkraftwerk, Einspeisung ----
+// Ablesereihe für die Auswertung: Bei PV-Zählern mit Inbetriebnahme (op) zählt dieser Tag als Stand 0.
+function meterSeries(m,rs){
+ rs=[...rs].sort((a,b)=>a.t-b.t);
+ if(m&&m.medium==='pv'&&isFinite(m.op)&&m.op!=null&&(!rs.length||rs[0].t>m.op))rs.unshift({id:'op0',t:m.op,v:0,virt:1});
+ return rs;
+}
+// Zweites Zählwerk (Einspeisung 2.8.0) als eigene Ablesereihe. Der Einbau zählt als Anfangsstand v0, wenn bekannt.
+// Ein Zählerwechsel bei der ersten Einspeise-Ablesung ist der Einbau selbst und zählt für die Einspeisung nicht.
+function feedSeries(m,rs){
+ const f=m&&m.feed;if(!f||!isFinite(f.from))return [];
+ const out=[];
+ for(const r of [...rs].sort((a,b)=>a.t-b.t)){
+  if(r.v2==null||r.t<f.from)continue;
+  const x={id:r.id,t:r.t,v:r.v2};
+  if(r.w&&out.length){x.w=1;if(r.end2!=null)x.end=r.end2;x.start=r.start2||0}
+  out.push(x);
+ }
+ if(f.v0!=null&&(!out.length||out[0].t>f.from))out.unshift({id:'feed0',t:f.from,v:f.v0,virt:1});
+ return out;
+}
+// Mehrere Tagesreihen auf ein gemeinsames Tagesraster legen. Ein Tag zählt nur so weit, wie alle Reihen ihn abdecken;
+// die Werte werden anteilig darauf bezogen. zero: vor diesem Zeitpunkt gilt die Reihe als 0 und vollständig (vor der Inbetriebnahme).
+function alignSeries(items){
+ items=items.filter(x=>x&&x.D);if(!items.length)return null;
+ const a=Math.min(...items.map(x=>x.D.st[0])),b=Math.max(...items.map(x=>x.D.st[x.D.st.length-1])),d0=new Date(a),st=[];
+ for(let i=0;;i++){const t=new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+i).getTime();st.push(t);if(t>=b)break}
+ const n=Math.max(0,st.length-1),cov=new Float64Array(n),lng=new Float64Array(n),est=new Float64Array(n),vs=items.map(()=>new Float64Array(n));
+ const idx=items.map(x=>{const m=new Map();for(let i=0;i<x.D.st.length-1;i++)m.set(x.D.st[i],i);return m});
+ let first=null,last=null;
+ for(let i=0;i<n;i++){
+  const span=st[i+1]-st[i];let c=span,lf=0,ef=0;const q=[];
+  for(let k=0;k<items.length;k++){
+   const x=items[k],j=idx[k].get(st[i]);let v=0,cc=0,l=0,e=0;
+   if(j!=null&&x.D.cov[j]>0){v=x.D.v[j];cc=x.D.cov[j];l=x.D.lng[j];e=x.D.est[j]}
+   if(x.zero!=null&&isFinite(x.zero)&&st[i]<x.zero)cc=Math.min(span,cc+Math.min(span,x.zero-st[i]));
+   q.push([v,cc]);c=Math.min(c,cc);if(cc>0){lf=Math.max(lf,l/cc);ef=Math.max(ef,e/cc)}
+  }
+  if(c<=0)continue;
+  q.forEach(([v,cc],k)=>{vs[k][i]=v*c/cc});
+  cov[i]=c;lng[i]=c*lf;est[i]=c*ef;
+  if(first==null)first=st[i];last=st[i]+c;
+ }
+ if(first==null)return null;
+ return {st,cov,lng,est,vs,first,last};
+}
+// Solar-Daten: Bezug (1.8.0), Einspeisung (2.8.0), Erzeugung je PV-Zähler; Ersparnis = Eigenverbrauch × Strompreis brutto
+function solarData(bez,feed,pvs,L){
+ const items=[];if(bez)items.push({D:bez});if(feed)items.push({D:feed});(pvs||[]).forEach(p=>items.push(p));
+ const G=alignSeries(items);if(!G)return null;
+ let k=0;const n=G.cov.length,mk=v=>({st:G.st,v,k:null,cov:G.cov,lng:G.lng,est:G.est,first:G.first,last:G.last});
+ const B=bez?mk(G.vs[k++]):null,F=feed?mk(G.vs[k++]):null,Pk=(pvs||[]).map(()=>mk(G.vs[k++]));
+ let P=null;if(Pk.length){const v=new Float64Array(n);Pk.forEach(p=>p.v.forEach((x,i)=>{v[i]+=x}));P=mk(v)}
+ let Sav=null;
+ if(P&&F&&L&&L.length){const v=new Float64Array(n);for(let i=0;i<n;i++){if(G.cov[i]<=0)continue;const x=tariffAt(L,G.st[i]);if(x)v[i]=(P.v[i]-F.v[i])*unitGross(x)}Sav=mk(v)}
+ return {B,F,P,Pk,Sav,first:G.first,last:G.last};
+}
+// Kennzahlen eines Zeitabschnitts: Erzeugung P, Einspeisung F, Bezug B, Eigenverbrauch EV, Hausverbrauch H, Quote q, Autarkie aut
+function solarSum(X,s,e){
+ const ref=X.P||X.F||X.B,o=sumRange(ref,s,e);if(o.cov<=0)return null;
+ const g=D=>D?sumRange(D,s,e).v:null,P=g(X.P),F=g(X.F),B=g(X.B),sv=g(X.Sav);
+ const EV=P!=null&&F!=null?Math.max(0,P-F):null,H=EV!=null&&B!=null?B+EV:null;
+ return {P,F,B,EV,H,q:EV!=null&&P>0?EV/P:null,aut:EV!=null&&H>0?EV/H:null,sav:sv!=null&&EV!=null?Math.max(0,sv):null,
+  pk:X.Pk.map(D=>sumRange(D,s,e).v),days:o.cov/DAY,interp:o.lng>=o.cov*0.5,part:o.cov<o.span*0.99,est:o.est>0};
+}
 // Eine Rechnung in die Rechnungsdaten übernehmen (ersetzt dasselbe Jahr und die Preise im Zeitraum)
 function mergeInvoice(B,p){
  B=B||{provider:'',tariffs:{},invoices:[],credits:[]};B.tariffs=B.tariffs||{};B.invoices=B.invoices||[];B.credits=B.credits||[];
@@ -837,16 +911,18 @@ function mergeInvoice(B,p){
 const MEDIA={
  gas:{label:'Gas',unit:'m³',col:'gas',icon:'flame',pre:5,dec:3},
  strom:{label:'Strom',unit:'kWh',col:'strom',icon:'zap',pre:6,dec:1},
+ pv:{label:'PV-Erzeugung',unit:'kWh',col:'solar',icon:'panel',pre:6,dec:1},
  wasser:{label:'Wasser',unit:'m³',col:'wasser',icon:'drop',pre:5,dec:0},
  garten:{label:'Gartenwasser',unit:'m³',col:'garten',icon:'sprout',pre:5,dec:3},
  waerme:{label:'Wärme',unit:'kWh',col:'waerme',icon:'therm',pre:5,dec:2},
  sonst:{label:'Sonstiges',unit:'',col:'misc',icon:'gauge',pre:5,dec:0}
 };
-const COLS=['gas','strom','wasser','himmel','cyan','gruen','garten','waerme','sand','misc'];
-const COL_NAMES={gas:'Orange',strom:'Gelb',wasser:'Blau',himmel:'Hellblau',cyan:'Türkis',gruen:'Grün',garten:'Violett',waerme:'Pink',sand:'Sand',misc:'Grau'};
+const COLS=['gas','strom','solar','wasser','himmel','cyan','gruen','garten','waerme','sand','misc'];
+const COL_NAMES={gas:'Orange',strom:'Gelb',solar:'Sonnengelb',wasser:'Blau',himmel:'Hellblau',cyan:'Türkis',gruen:'Grün',garten:'Violett',waerme:'Pink',sand:'Sand',misc:'Grau'};
 const IC={
  flame:'<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
  zap:'<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>',
+ panel:'<path d="M5 4h14l2 11H3z"/><path d="M4 9.5h16M9.7 4l-.7 11M14.3 4l.7 11M12 15v4M8 20h8"/>',
  sprout:'<path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/>',
  drop:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
  therm:'<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
@@ -1048,7 +1124,7 @@ function photoEditor(){
 
 /* ---------- Zustand und Router ---------- */
 let VIEW='home';
-let R={mid:null,digits:[],dt:'',photoNote:'',scan:'',scanMsg:'',helpOpen:false};
+let R={mid:null,digits:[],digits2:[],dt:'',photoNote:'',scan:'',scanMsg:'',helpOpen:false};
 let H={mid:null,open:null};
 let W=null;
 const curMeter=()=>meterById(R.mid)||S.meters[0];
@@ -1085,11 +1161,14 @@ function tile(m){
  else if(!li)info='Erster Stand gespeichert';
  else info='<b>+'+nf(li.cons,cd(m))+' '+esc(m.unit)+'</b> · '+Math.round(li.days)+' Tage'+(li.est?' (geschätzt)':'');
  const sp=spark(iv.filter(x=>!x.est).slice(-10).map(x=>x.rate));
+ let fl='';
+ if(m.feed){const fs=feedSeries(m,rs),fi=intervalsOf(fs),lf=fi[fi.length-1],real=fs.filter(x=>!x.virt);
+  fl='<span class="ti mu">Einspeisung: '+(!real.length?'noch kein Stand':lf?'<b>+'+nf(lf.cons,cd(m))+' kWh</b> · '+Math.round(lf.days)+' Tage'+(lf.est?' (geschätzt)':''):'erster Stand gespeichert')+'</span>'}
  return '<button class="card tile" data-act="readMeter" data-id="'+m.id+'" style="--mc:var(--c-'+m.col+')" aria-label="'+esc(m.name)+' ablesen">'+
   '<span class="mi">'+ico(MEDIA[m.medium].icon)+'</span>'+
   '<span class="tmain"><span class="trow"><span class="tn">'+esc(m.name)+(overdue?'<i class="due" title="Ablesung fällig"></i>':'')+'</span>'+sp+'</span>'+
   (last?'<span class="tv">'+rollers(fmtValue(last.v,m.pre,m.dec))+'<span class="mu sm unit">'+esc(m.unit)+'</span></span>':'')+
-  '<span class="ti mu">'+info+'</span></span></button>';
+  '<span class="ti mu">'+info+'</span>'+fl+'</span></button>';
 }
 function viewHome(){
  if(!S.meters.length)return '<div class="card"><p>Noch kein Zähler angelegt.</p><button class="btn" data-act="addMeter">'+ico('plus')+' Zähler einrichten</button></div>';
@@ -1106,14 +1185,15 @@ function viewHome(){
 
 /* ---------- Ablesen ---------- */
 function rDigits(){
- const m=curMeter(),rs=readingsOf(m.id),last=rs[rs.length-1];
+ const m=curMeter(),rs=readingsOf(m.id),last=rs[rs.length-1],lf=rs.filter(r=>r.v2!=null).pop();
  R.digits=last?digitString(last.v,m.pre,m.dec).split(''):Array(m.pre+m.dec).fill('');
+ R.digits2=lf?digitString(lf.v2,m.pre,m.dec).split(''):m.feed&&m.feed.v0!=null&&!lf?digitString(m.feed.v0,m.pre,m.dec).split(''):Array(m.pre+m.dec).fill('');
 }
-function rollerInputs(pre,dec,ds){
+function rollerInputs(pre,dec,ds,two){
  let h='';
  for(let i=0;i<pre+dec;i++){
   if(i===pre&&dec>0)h+='<span class="sep">,</span>';
-  h+='<input inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="'+(i<pre?'Stelle '+(i+1)+' vor dem Komma':'Nachkommastelle '+(i-pre+1))+'" data-i="'+i+'" class="'+(i>=pre?'dd':'')+'" value="'+esc(ds[i]||'')+'">';
+  h+='<input inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" aria-label="'+(two?'Einspeisung, ':'')+(i<pre?'Stelle '+(i+1)+' vor dem Komma':'Nachkommastelle '+(i-pre+1))+'" data-i="'+i+'" class="'+(i>=pre?'dd':'')+'" value="'+esc(ds[i]||'')+'">';
  }
  return h;
 }
@@ -1126,13 +1206,15 @@ function viewRead(){
  if(!meterById(R.mid)){R.mid=S.meters[0].id;rDigits()}
  if(!R.digits.length)rDigits();
  if(!R.dt)R.dt=toLocalInput(Date.now());
- const m=curMeter(),rs=readingsOf(m.id),last=rs[rs.length-1],N=m.pre+m.dec;
- const rl=rollerInputs(m.pre,m.dec,R.digits);
+ const m=curMeter(),rs=readingsOf(m.id),last=rs[rs.length-1],N=m.pre+m.dec,app=m.medium==='pv'&&m.src==='app',fd=!!m.feed;
+ if(!R.digits2||R.digits2.length!==N)R.digits2=Array(N).fill('');
+ const rl=(fd?'<div class="rlab"><b>Bezug</b><span>1.8.0</span></div>':'')+'<div class="rollers">'+rollerInputs(m.pre,m.dec,R.digits)+'</div>'+
+  (fd?'<div class="rlab"><b>Einspeisung</b><span>2.8.0</span></div><div class="rollers" data-r="2">'+rollerInputs(m.pre,m.dec,R.digits2,true)+'</div>':'');
  return '<section class="card">'+pickRow('pickMeter',m.id)+'<div class="pname">'+esc(m.name)+'</div></section>'+
- '<section class="card"><h2>Foto</h2>'+(CR.src?photoEditor():photoPicker())+'</section>'+
- '<section class="card"><h2>Zählerstand</h2>'+
-  '<p class="mu sm">'+(last?'Vorbelegt mit dem letzten Stand ('+fmtValue(last.v,m.pre,m.dec)+' vom '+fmtDay(last.t)+'). Ändere nur die Stellen, die abweichen.':'Trage die Stellen so ein, wie sie auf dem Zähler stehen.')+'</p>'+
-  '<div class="entry">'+(CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+'<div class="rollers">'+rl+'</div></div>'+
+ '<section class="card"><h2>'+(app?'Screenshot':'Foto')+'</h2>'+(app&&!CR.src?'<p class="mu sm">Mach in der App des Herstellers einen Screenshot vom Gesamtertrag und wähle ihn hier aus.</p>':'')+(CR.src?photoEditor():photoPicker())+'</section>'+
+ '<section class="card"><h2>'+(app?'Gesamtertrag laut App':'Zählerstand')+'</h2>'+
+  '<p class="mu sm">'+(last?'Vorbelegt mit dem letzten Stand ('+fmtValue(last.v,m.pre,m.dec)+' vom '+fmtDay(last.t)+'). Ändere nur die Stellen, die abweichen.':'Trage die Stellen so ein, wie sie auf dem Zähler stehen.')+(fd?' Der Zähler zeigt Bezug (1.8.0) und Einspeisung (2.8.0) meist im Wechsel an.':'')+'</p>'+
+  '<div class="entry">'+(CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+rl+'</div>'+
   '<label class="fld">Datum und Uhrzeit<input type="datetime-local" id="rdt" value="'+esc(R.dt)+'"></label>'+
   (R.photoNote?'<p class="mu sm">'+esc(R.photoNote)+'</p>':'')+
   '<details class="help"'+(R.helpOpen?' open':'')+'><summary>Optional: Erkannten Text einfügen</summary>'+
@@ -1149,27 +1231,31 @@ async function saveReading(){
  if(ds.some(x=>x===''))return toast('Bitte alle Stellen ausfüllen.');
  const v=valueFromDigits(ds.join(''),m.pre,m.dec),t=new Date(R.dt).getTime();
  if(!isFinite(t))return toast('Bitte Datum und Uhrzeit prüfen.');
- const rs=readingsOf(m.id),warns=checkReading(rs,v,t,cd(m)),extra={};let oldNr=null;
+ const rs=readingsOf(m.id),fd=!!m.feed&&t>=m.feed.from,extra={};let oldNr=null,v2=null;
+ if(fd){const d2=Array.from({length:m.pre+m.dec},(_,i)=>(R.digits2||[])[i]||'');if(d2.some(x=>x===''))return toast('Bitte alle Stellen der Einspeisung ausfüllen.');v2=valueFromDigits(d2.join(''),m.pre,m.dec)}
+ const pvOpt=m.medium==='pv'?{noRate:true}:null;
+ const warns=checkReading(meterSeries(m,rs).filter(r=>!r.virt),v,t,cd(m),pvOpt).concat(v2!=null?checkReading(feedSeries(m,rs),v2,t,cd(m),{noDup:true,noRate:true}).map(w=>({...w,text:'Einspeisung: '+w.text})):[]);
  const list=warns.map(w=>'<li>'+esc(w.text)+'</li>').join('');
  if(warns.some(w=>w.k==='low')){
   const r=await modal('<h3>Niedrigerer Stand</h3><ul class="tips">'+list+'</ul><p>Mögliche Ursachen: Der Zähler wurde getauscht, oder die Stellen sind falsch eingetragen.</p>'+
    '<label class="fld">Endstand des alten Zählers (optional)<input id="mw-end" inputmode="decimal"></label>'+
    '<label class="fld">Anfangsstand des neuen Zählers (meist 0)<input id="mw-start" inputmode="decimal" value="0"></label>'+
+   (v2!=null?'<label class="fld">Endstand Einspeisung alter Zähler (optional)<input id="mw-end2" inputmode="decimal"></label><label class="fld">Anfangsstand Einspeisung neuer Zähler<input id="mw-start2" inputmode="decimal" value="0"></label>':'')+
    '<label class="fld">Neue Zählernummer (optional)<input id="mw-nr" autocomplete="off"></label>'+
    '<div class="row"><button class="btn" data-val="swap">Ja, Zähler getauscht</button><button class="btn sec" data-val="fix">Nein, Stand korrigieren</button></div>',
-   (d,v)=>({act:v,end:num($('#mw-end',d).value),start:num($('#mw-start',d).value),nr:$('#mw-nr',d).value.trim()}));
+   (d,v)=>({act:v,end:num($('#mw-end',d).value),start:num($('#mw-start',d).value),end2:$('#mw-end2',d)?num($('#mw-end2',d).value):null,start2:$('#mw-start2',d)?num($('#mw-start2',d).value):null,nr:$('#mw-nr',d).value.trim()}));
   if(!r||r.act!=='swap')return;
-  extra.w=1;if(r.end!=null)extra.end=r.end;extra.start=r.start||0;if(r.nr){extra.nr=r.nr;oldNr=m.number||null;m.number=r.nr}
+  extra.w=1;if(r.end!=null)extra.end=r.end;extra.start=r.start||0;if(v2!=null){if(r.end2!=null)extra.end2=r.end2;extra.start2=r.start2||0}if(r.nr){extra.nr=r.nr;oldNr=m.number||null;m.number=r.nr}
  }else if(warns.length){
   const a=await modal('<h3>Bitte prüfen</h3><ul class="tips">'+list+'</ul><div class="row"><button class="btn" data-val="ok">Trotzdem speichern</button><button class="btn sec" data-val="back">Zurück</button></div>');
   if(a!=='ok')return;
  }
- const id=uid(),rd={id,m:m.id,t,v,...(m.number?{nr:m.number}:{}),...extra};
+ const id=uid(),rd={id,m:m.id,t,v,...(v2!=null?{v2}:{}),...(m.number?{nr:m.number}:{}),...extra};
  if(oldNr){const pv=rs[rs.length-1];if(pv&&!pv.nr){pv.nr=oldNr}}
  if(CR.src){const blob=await crBlob();if(blob&&await DB.put(id,blob))rd.photo=id;m.crop={...CR.rect}}
  S.readings.push(rd);fillNumbers(S.meters,S.readings);
  if(!save())return;
- R.dt='';R.scan='';R.scanMsg='';R.photoNote='';R.helpOpen=false;R.digits=[];crReset();
+ R.dt='';R.scan='';R.scanMsg='';R.photoNote='';R.helpOpen=false;R.digits=[];R.digits2=[];crReset();
  toast('Ablesung gespeichert.');go('home');
 }
 function applyScan(){
@@ -1185,18 +1271,19 @@ function applyScan(){
 function viewHist(){
  if(!S.meters.length)return '<div class="card"><p>Noch keine Zähler.</p></div>';
  if(!meterById(H.mid))H.mid=S.meters[0].id;
- const m=meterById(H.mid),rs=readingsOf(m.id),iv=intervalsOf(rs),byB=new Map(iv.map(x=>[x.b.id,x]));
+ const m=meterById(H.mid),rs=readingsOf(m.id),iv=intervalsOf(meterSeries(m,rs)),byB=new Map(iv.map(x=>[x.b.id,x])),fsr=feedSeries(m,rs),byF=new Map(intervalsOf(fsr).map(x=>[x.b.id,x]));
  let h='<section class="card">'+pickRow('pickHist',m.id)+'<div class="pname">'+esc(m.name)+'</div></section>';
  if(!rs.length)return h+'<section class="card"><p class="mu">Noch keine Ablesungen.</p></section>';
  const row=r=>{
   const k=rs.indexOf(r),pv=rs[k-1],showNr=r.nr&&(!pv||pv.nr!==r.nr);
   const x=byB.get(r.id),d=x?'+'+nf(x.cons,cd(m))+' '+esc(m.unit)+' · '+Math.round(x.days)+' Tage'+(x.est?' (geschätzt)':''):'Erster Stand';
-  return '<button class="item" data-act="editReading" data-id="'+r.id+'"><div><b class="mono">'+fmtValue(r.v,m.pre,m.dec)+'</b><div class="mu sm">'+fmtFull(r.t)+(showNr?' · Nr. '+esc(r.nr):'')+(r.src==='re'?' · aus Rechnung':'')+'</div></div><div class="mu sm right">'+d+(r.photo?' '+ico('photo','s'):'')+(r.w?' '+ico('swap','s'):'')+'</div></button>';
+  const f=byF.get(r.id),fv=r.v2!=null&&m.feed?'<div class="mu sm">Einspeisung <span class="mono">'+fmtValue(r.v2,m.pre,m.dec)+'</span></div>':'',fd=r.v2!=null&&m.feed?'<br>'+(f?'+'+nf(f.cons,cd(m))+' eingespeist':'Erster Stand'):'';
+  return '<button class="item" data-act="editReading" data-id="'+r.id+'"><div><b class="mono">'+fmtValue(r.v,m.pre,m.dec)+'</b>'+fv+'<div class="mu sm">'+fmtFull(r.t)+(showNr?' · Nr. '+esc(r.nr):'')+(r.src==='re'?' · aus Rechnung':'')+'</div></div><div class="mu sm right">'+d+(r.photo?' '+ico('photo','s'):'')+(r.w?' '+ico('swap','s'):'')+fd+'</div></button>';
  };
  const mk=t=>{const d=new Date(t);return d.getFullYear()*12+d.getMonth()},now=new Date();
  const start=mk(rs[0].t),last=mk(rs[rs.length-1].t),end=RO()?last:Math.max(last,now.getFullYear()*12+now.getMonth());
  const by=new Map();rs.forEach(r=>{const k=mk(r.t);if(!by.has(k))by.set(k,[]);by.get(k).push(r)});
- const D=dailySeries(rs,null);
+ const D=dailySeries(meterSeries(m,rs),null),DF=m.feed?dailySeries(fsr,null):null;
  if(!H.open)H.open=new Set([Math.floor(end/12)]);
  for(let y=Math.floor(end/12);y>=Math.floor(start/12);y--){
   let body='',cnt=0,gaps=0,run=[];
@@ -1211,8 +1298,8 @@ function viewHist(){
    body+='<div class="hmon"><span>'+MONF[mo]+'</span>'+(RO()?'':'<button class="hdel" data-act="delMonth" data-y="'+y+'" data-mo="'+mo+'" aria-label="Ablesungen '+MONF[mo]+' '+y+' löschen">'+ico('trash','s')+'</button>')+'</div>'+list.slice().reverse().map(row).join('');
   }
   flush();
-  const c=D?sumRange(D,new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime()):null;
-  h+='<details class="card yr" data-y="'+y+'"'+(H.open.has(y)?' open':'')+'><summary><span class="yt">'+y+'</span><span class="ym"><span>'+(c&&c.cov>0?(c.lng>0?'≈ ':'')+fmtAuto(c.v)+' '+esc(m.unit):'')+'</span><span class="mu sm">'+cnt+(cnt===1?' Ablesung':' Ablesungen')+(gaps?', <span class="gapn">'+gaps+(gaps===1?' Lücke':' Lücken')+'</span>':'')+'</span></span><i class="chev" aria-hidden="true"></i></summary>'+
+  const c=D?sumRange(D,new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime()):null,cf=DF?sumRange(DF,new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime()):null;
+  h+='<details class="card yr" data-y="'+y+'"'+(H.open.has(y)?' open':'')+'><summary><span class="yt">'+y+'</span><span class="ym"><span>'+(c&&c.cov>0?(c.lng>0?'≈ ':'')+fmtAuto(c.v)+' '+esc(m.unit):'')+'</span>'+(cf&&cf.cov>0?'<span class="mu sm">'+(cf.lng>0?'≈ ':'')+fmtAuto(cf.v)+' '+esc(m.unit)+' eingespeist</span>':'')+'<span class="mu sm">'+cnt+(cnt===1?' Ablesung':' Ablesungen')+(gaps?', <span class="gapn">'+gaps+(gaps===1?' Lücke':' Lücken')+'</span>':'')+'</span></span><i class="chev" aria-hidden="true"></i></summary>'+
    '<div class="ybody">'+body+(cnt&&!RO()?'<button class="btn ghost sm ydel" data-act="delYear" data-y="'+y+'">'+ico('trash','s')+' Alle Ablesungen '+y+' löschen</button>':'')+'</div></details>';
  }
  return h;
@@ -1223,11 +1310,12 @@ async function editReading(id){
  if(r.photo){const b=await DB.get(r.photo);if(b&&b!==true)img='<img class="cropimg" src="'+URL.createObjectURL(b)+'" alt="Foto der Ablesung">';else img='<p class="mu sm">'+ico('photo','s')+' Foto auf anderem Gerät</p>'}
  const res=await modal('<h3>'+esc(m.name)+'</h3>'+img+
   '<label class="fld">Datum und Uhrzeit<input type="datetime-local" id="ed-t" value="'+toLocalInput(r.t)+'"></label>'+
-  '<label class="fld">Zählerstand<input id="ed-v" inputmode="decimal" value="'+fmtValue(r.v,m.pre,m.dec)+'"></label>'+
+  '<label class="fld">'+(m.feed?'Bezug (1.8.0)':'Zählerstand')+'<input id="ed-v" inputmode="decimal" value="'+fmtValue(r.v,m.pre,m.dec)+'"></label>'+
+  (m.feed&&(r.v2!=null||r.t>=m.feed.from)?'<label class="fld">Einspeisung (2.8.0)<input id="ed-v2" inputmode="decimal" placeholder="keine" value="'+(r.v2!=null?fmtValue(r.v2,m.pre,m.dec):'')+'"></label>':'')+
   '<label class="fld">Zählernummer<input id="ed-nr" autocomplete="off" value="'+esc(r.nr||'')+'"></label>'+
-  (r.w?'<div class="fld" style="margin-bottom:2px"><b>Zählerwechsel</b></div><p class="mu sm">Trage den Endstand des alten Zählers ein, wenn du ihn kennst (zum Beispiel aus der Abrechnung). Ohne Endstand wird der Verbrauch dieses Zeitraums geschätzt.</p><label class="fld">Endstand des alten Zählers<input id="ed-end" inputmode="decimal" placeholder="unbekannt" value="'+(r.end!=null?fmtValue(r.end,m.pre,m.dec):'')+'"></label><label class="fld">Anfangsstand des neuen Zählers<input id="ed-start" inputmode="decimal" value="'+fmtValue(r.start||0,m.pre,m.dec)+'"></label>':'')+
+  (r.w?'<div class="fld" style="margin-bottom:2px"><b>Zählerwechsel</b></div><p class="mu sm">Trage den Endstand des alten Zählers ein, wenn du ihn kennst (zum Beispiel aus der Abrechnung). Ohne Endstand wird der Verbrauch dieses Zeitraums geschätzt.</p><label class="fld">Endstand des alten Zählers<input id="ed-end" inputmode="decimal" placeholder="unbekannt" value="'+(r.end!=null?fmtValue(r.end,m.pre,m.dec):'')+'"></label><label class="fld">Anfangsstand des neuen Zählers<input id="ed-start" inputmode="decimal" value="'+fmtValue(r.start||0,m.pre,m.dec)+'"></label>'+(m.feed&&r.v2!=null?'<label class="fld">Endstand Einspeisung alter Zähler<input id="ed-end2" inputmode="decimal" placeholder="unbekannt" value="'+(r.end2!=null?fmtValue(r.end2,m.pre,m.dec):'')+'"></label><label class="fld">Anfangsstand Einspeisung neuer Zähler<input id="ed-start2" inputmode="decimal" value="'+fmtValue(r.start2||0,m.pre,m.dec)+'"></label>':''):'')+
   (RO()?'<div class="row"><button class="btn sec" data-val="close">Schließen</button></div>':'<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>'),
-  (d,v)=>({act:v,t:$('#ed-t',d).value,val:$('#ed-v',d).value,nr:$('#ed-nr',d).value.trim(),end:$('#ed-end',d)?$('#ed-end',d).value:null,start:$('#ed-start',d)?$('#ed-start',d).value:null}));
+  (d,v)=>({act:v,t:$('#ed-t',d).value,val:$('#ed-v',d).value,nr:$('#ed-nr',d).value.trim(),end:$('#ed-end',d)?$('#ed-end',d).value:null,start:$('#ed-start',d)?$('#ed-start',d).value:null,v2:$('#ed-v2',d)?$('#ed-v2',d).value.trim():null,end2:$('#ed-end2',d)?$('#ed-end2',d).value.trim():null,start2:$('#ed-start2',d)?$('#ed-start2',d).value.trim():null}));
  if(!res||!res.act||res.act==='close')return;
  if(res.act==='del'){
   const a=await modal('<h3>Ablesung löschen?</h3><p>Dieser Vorgang lässt sich nicht rückgängig machen.</p><div class="row"><button class="btn danger" data-val="yes">Löschen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
@@ -1243,6 +1331,11 @@ async function editReading(id){
   if(e==null)delete r.end;else r.end=e;
   r.start=st;
  }
+ if(res.v2!=null){
+  if(res.v2===''){delete r.v2;delete r.end2;delete r.start2}
+  else{const q=parseDeNum(res.v2);if(q==null)return toast('Der Einspeisestand ist ungültig.');r.v2=q}
+ }
+ if(r.w&&res.end2!=null&&r.v2!=null){const e2=res.end2?parseDeNum(res.end2):null,s2=res.start2?parseDeNum(res.start2):0;if((res.end2&&e2==null)||s2==null)return toast('Endstand oder Anfangsstand der Einspeisung sind ungültig.');if(e2==null)delete r.end2;else r.end2=e2;r.start2=s2}
  r.v=p.value;r.t=t;
  if(res.nr!==(r.nr||'')){if(res.nr){r.nr=res.nr;delete r.nrAuto}else{delete r.nr;delete r.nrAuto}}
  fillNumbers(S.meters,S.readings);save();render();toast('Gespeichert.');
@@ -1253,7 +1346,7 @@ let A=null;
 function anaInit(){
  if(A)return;
  const p=S.set.ana||{};
- A={view:p.view||'use',mid:null,mode:p.mode||'year',type:p.type||'bar',gran:p.gran||'m',metric:p.metric||'sum',kwh:!!p.kwh,years:null,pa:null,pb:null,open:false,sel:null};
+ A={view:p.view||'use',mid:null,mode:p.mode||'year',type:p.type||'bar',gran:p.gran||'m',metric:p.metric||'sum',kwh:!!p.kwh,years:null,pa:null,pb:null,open:false,sel:null,reg:'b'};
 }
 function anaKeep(){S.set.ana={view:A.view,mode:A.mode,type:A.type,gran:A.gran,metric:A.metric,kwh:A.kwh};save()}
 const isLight=()=>document.documentElement.dataset.theme==='light';
@@ -1314,17 +1407,18 @@ function anaFolds(){
 }
 function viewAna(){
  anaInit();
- const top='<div class="vsw">'+seg('anaView',A.view,[['use','Verbrauch'],['cost','Kosten']])+'</div>';
- return top+(A.view==='cost'?viewCost():viewUse());
+ const sol=hasSolar();if(A.view==='sol'&&!sol)A.view='use';
+ const top='<div class="vsw">'+seg('anaView',A.view,[['use','Verbrauch'],['cost','Kosten']].concat(sol?[['sol','Solar']]:[]))+'</div>';
+ return top+(A.view==='cost'?viewCost():A.view==='sol'?viewSol():viewUse());
 }
 function viewUse(){
  if(!S.meters.length)return '<div class="card"><p>Noch keine Zähler.</p></div>';
  if(!meterById(A.mid))A.mid=S.meters[0].id;
- const m=meterById(A.mid),D=dailySeries(readingsOf(m.id),m.conv);
- let h='<section class="card">'+pickRow('pickAna',m.id)+'<div class="pname">'+esc(m.name)+'</div></section>';
+ const m=meterById(A.mid),fe=!!m.feed&&A.reg==='e',rs0=readingsOf(m.id),D=fe?dailySeries(feedSeries(m,rs0),null):dailySeries(meterSeries(m,rs0),m.conv);
+ let h='<section class="card">'+pickRow('pickAna',m.id)+'<div class="pname">'+esc(m.name)+'</div>'+(m.feed?'<div style="margin-top:8px">'+seg('anaReg',fe?'e':'b',[['b','Bezug (1.8.0)'],['e','Einspeisung (2.8.0)']]).replace('class="seg"','class="seg full"')+'</div>':'')+'</section>';
  if(!D)return h+'<section class="card"><p class="mu">Für eine Auswertung braucht der Zähler mindestens zwei Ablesungen.</p></section>';
  anaDefaults(D);
- const canK=!!(m.conv&&m.conv.length),kwh=canK&&A.kwh,unit=kwh?'kWh':m.unit,light=isLight();
+ const canK=!fe&&!!(m.conv&&m.conv.length),kwh=canK&&A.kwh,unit=kwh?'kWh':m.unit,light=isLight();
  const unitTxt=unit+(A.metric==='day'?' pro Tag':'');
  let series=[],labels=[];
  if(A.mode==='year'){
@@ -1425,6 +1519,31 @@ async function editConv(m){
   m.conv=rows.sort((a,b)=>a.from-b.from).map(r=>({from:r.from,hs:r.hs,z:r.z}));
   if(A)A.kwh=true;save();render();return toast('Umrechnung gespeichert.');
  }
+}
+
+// Zweirichtungszähler: zweites Zählwerk Einspeisung (2.8.0), gültig ab Einbau
+async function editFeed(m){
+ if(!m||m.medium!=='strom'||roBlock())return;
+ const f=m.feed,rs=readingsOf(m.id);
+ const r=await modal('<h3>Einspeisung erfassen</h3><p class="mu sm">Ein Zweirichtungszähler hat zwei Zählwerke: <b>Bezug</b> (1.8.0) aus dem Netz und <b>Einspeisung</b> (2.8.0) ins Netz. Beim Ablesen trägst du dann beide Stände ein.</p>'+
+  '<label class="fld">Eingebaut am<input type="date" id="fe-d" value="'+esc(f?isoDay(f.from):isoDay(Date.now()))+'"></label>'+
+  '<label class="fld">Einspeisung beim Einbau (meist 0)<input id="fe-v" inputmode="decimal" placeholder="unbekannt" value="'+(f?(f.v0!=null?String(f.v0).replace('.',','):''):'0')+'"></label>'+
+  '<details class="fold"><summary>Wenn der Zähler dabei getauscht wurde</summary><p>Ist der Zweirichtungszähler neu, fällt der Bezug bei der ersten Ablesung danach. Die App fragt dann nach dem Endstand des alten Zählers. Ihn kannst du auch später im Verlauf eintragen, dann wird genau gerechnet.</p><p>Ist der Anfangsstand unbekannt, rechnet die Einspeisung ab der ersten Ablesung mit beiden Ständen.</p></details>'+
+  '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Abbrechen</button>'+(f?'<button class="btn danger" data-val="del">Entfernen</button>':'')+'</div>',
+  (d,v)=>({v,d:$('#fe-d',d).value,val:$('#fe-v',d).value.trim()}));
+ if(!r||!r.v||r.v==='close')return;
+ if(r.v==='del'){
+  const a=await modal('<h3>Einspeisung entfernen?</h3><p>Der Stromzähler zählt dann wieder nur den Bezug. Bereits eingetragene Einspeisestände bleiben in den Ablesungen gespeichert und kommen zurück, wenn du die Einspeisung wieder einrichtest.</p><div class="row"><button class="btn danger" data-val="yes">Entfernen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
+  if(a!=='yes')return;delete m.feed;R.digits=[];save();render();return toast('Einspeisung entfernt.');
+ }
+ const from=dParse(r.d),v0=r.val?parseDeNum(r.val):null;
+ if(!isFinite(from))return toast('Bitte das Einbaudatum eintragen.');
+ if(r.val&&v0==null)return toast('Der Anfangsstand ist ungültig.');
+ if(from>Date.now()+DAY)return toast('Das Einbaudatum liegt in der Zukunft.');
+ m.feed={from};if(v0!=null)m.feed.v0=v0;
+ R.digits=[];save();render();
+ const early=rs.filter(x=>x.v2!=null&&x.t<from).length;
+ toast(early?'Gespeichert. '+early+' Einspeisestände vor dem Einbau werden nicht gezählt.':'Einspeisung eingerichtet. Beim Ablesen gibt es jetzt zwei Stände.');
 }
 
 /* ---------- Kosten (Rechnungsmodul) ---------- */
@@ -1667,6 +1786,102 @@ async function billRow(year){
   if(b!=='yes')return;S.bills.invoices=S.bills.invoices.filter(i=>i.year!==year);S.bills.credits=(S.bills.credits||[]).filter(c=>c.year!==year);save();render();toast('Rechnung '+year+' gelöscht.')}
 }
 
+/* ---------- Solar: PV, Balkonkraftwerk, Einspeisung ---------- */
+let SO={year:null,sel:null};
+const SOLC={b:'var(--c-strom)',ev:'var(--pri)',f:'var(--c-cyan)',p:'var(--c-solar)'};
+const hasSolar=()=>S.meters.some(m=>m.medium==='pv'||m.feed);
+const kwhT=x=>x==null?'–':fmtVal(x)+' kWh';
+const pctT=x=>x==null?'–':nf(x*100,0)+' %';
+function solarCtx(){
+ const st=S.meters.find(m=>m.medium==='strom'&&m.feed)||S.meters.find(m=>m.medium==='strom');
+ const pvm=S.meters.filter(m=>m.medium==='pv');
+ if(!pvm.length&&!(st&&st.feed))return null;
+ const rs=st?readingsOf(st.id):[],bez=st?dailySeries(rs,null):null,feed=st&&st.feed?dailySeries(feedSeries(st,rs),null):null;
+ const pvs=pvm.map(m=>({m,D:dailySeries(meterSeries(m,readingsOf(m.id)),null),zero:isFinite(m.op)&&m.op!=null?m.op:null}));
+ const L=S.bills&&S.bills.tariffs?tariffList(S.bills.tariffs.strom):null;
+ const ok=pvs.filter(p=>p.D),lack=pvs.filter(p=>!p.D).map(p=>p.m).concat(st&&st.feed&&!feed?[st]:[]);
+ const X=(ok.length||feed)?solarData(bez,feed,ok.map(p=>({D:p.D,zero:p.zero})),L&&L.length?L:null):null;
+ return {st,pvm:ok.map(p=>p.m),lack,X,hasFeed:!!(st&&st.feed),noPv:!pvm.length,price:!!(L&&L.length)};
+}
+// Gestapelte Monatsbalken (12 Monate); cols=[{lab,col,b:[{v,interp,part}|null]}]
+function stackSvg(cols,sel,act){
+ const W=340,H=196,L=40,R=6,T=10,Bm=20,pw=W-L-R,ph=H-T-Bm,gw=pw/12,bw=gw*.62;
+ let mx=0;for(let i=0;i<12;i++){let s=0;cols.forEach(c=>{if(c.b[i])s+=Math.max(0,c.b[i].v)});mx=Math.max(mx,s)}
+ const tk=niceTicks(0,mx||1,4),y1=tk[tk.length-1],Y=v=>T+ph-v/y1*ph;
+ let h='<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Monatswerte"><defs>'+cols.map((c,i)=>'<pattern id="sx'+i+'" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><rect width="4" height="4" style="fill:'+c.col+';fill-opacity:.25"/><rect width="1.8" height="4" style="fill:'+c.col+'"/></pattern>').join('')+'</defs>';
+ if(sel!=null)h+='<rect x="'+(L+sel*gw).toFixed(1)+'" y="'+T+'" width="'+gw.toFixed(1)+'" height="'+ph+'" rx="4" fill="var(--tx)" fill-opacity=".07"/>';
+ tk.forEach(t=>{const yy=Y(t).toFixed(1);h+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+yy+'" y2="'+yy+'" stroke="var(--line)"/><text x="'+(L-5)+'" y="'+(+yy+3.5)+'" text-anchor="end">'+fmtAxis(t)+'</text>'});
+ MON.forEach((l,i)=>{h+='<text x="'+(L+(i+.5)*gw).toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle">'+l+'</text>'});
+ for(let i=0;i<12;i++){
+  let base=0;const x=L+i*gw+(gw-bw)/2;
+  cols.forEach((c,ci)=>{const p=c.b[i];if(!p||p.v<=0)return;const y0=Y(base),y2=Y(base+p.v);base+=p.v;
+   h+='<rect x="'+x.toFixed(1)+'" y="'+y2.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(.6,y0-y2).toFixed(1)+'" style="fill:'+(p.interp?'url(#sx'+ci+')':c.col)+(p.part?';fill-opacity:.45':'')+'"/>'});
+ }
+ if(act)for(let i=0;i<12;i++)h+='<rect x="'+(L+i*gw).toFixed(1)+'" y="0" width="'+gw.toFixed(1)+'" height="'+H+'" fill="transparent" data-act="'+act+'" data-i="'+i+'" style="cursor:pointer"/>';
+ return h+'</svg>';
+}
+function viewSol(){
+ const c=solarCtx(),stm=S.meters.find(m=>m.medium==='strom');
+ let h='';
+ if(c&&!c.hasFeed&&stm)h+='<div class="banner">'+ico('info')+'<div>Für Eigenverbrauch, Autarkie und Ersparnis fehlt die Einspeisung. <a href="#" data-act="setFeed" data-id="'+stm.id+'" style="color:var(--pri)">Am Stromzähler einrichten</a></div></div>';
+ if(c&&c.noPv)h+='<div class="banner">'+ico('info')+'<div>Lege einen PV-Zähler an, dann rechnet die App Erzeugung, Eigenverbrauch und Autarkie. <a href="#" data-act="addPv" style="color:var(--pri)">PV-Zähler anlegen</a></div></div>';
+ if(!c)return h+'<section class="card"><p class="mu">Noch kein PV-Zähler und keine Einspeisung eingerichtet.</p></section>';
+ const X=c.X,need=c.lack.length?'<p class="mu sm">Noch zu wenige Ablesungen bei: '+c.lack.map(m=>esc(m.name)).join(', ')+'. Jeder Zähler braucht mindestens zwei Stände.</p>':'';
+ const ref=X&&(X.P||X.F||X.B);
+ const years=ref?yearsOf(ref).filter(y=>{const o=solarSum(X,new Date(y,0,1).getTime(),new Date(y+1,0,1).getTime());return o&&((o.P||0)>0||(o.F||0)>0)}):[];
+ if(!years.length)return h+'<section class="card"><h2>Solar</h2>'+(need||'<p class="mu sm">Die Ablesezeiträume der beteiligten Zähler überschneiden sich noch nicht. Sobald für alle Zähler Stände im selben Zeitraum vorliegen, erscheint die Auswertung.</p>')+'</section>';
+ if(!years.includes(SO.year))SO.year=years[years.length-1];
+ const y=SO.year,light=isLight(),ys=new Date(y,0,1).getTime(),ye=new Date(y+1,0,1).getTime();
+ const mb=Array.from({length:12},(_,i)=>solarSum(X,new Date(y,i,1).getTime(),new Date(y,i+1,1).getTime()));
+ const full=!!(X.P&&X.F),parts=full?[['b','B','Bezug'],['ev','EV','Eigenverbrauch'],['f','F','Einspeisung']]:X.P?[['p','P','Erzeugung']]:[['f','F','Einspeisung']];
+ const cols=parts.map(([k,f,lab])=>({lab,col:SOLC[k],b:mb.map(o=>o&&o[f]!=null?{v:o[f],interp:o.interp,part:o.part}:null)}));
+ const anySim=mb.some(o=>o&&o.interp),anyPart=mb.some(o=>o&&o.part);
+ let det='<span class="mu">Tippe auf einen Monat, um die Werte zu sehen.</span>';
+ if(SO.sel!=null){const o=mb[SO.sel];
+  det=o?'<span class="dv"><b style="margin:0">'+MON[SO.sel]+' '+y+'</b>'+(o.interp?'<span class="mu">simuliert</span>':'')+(o.part?'<span class="mu">unvollständig</span>':'')+'</span>'+
+   [['p','Erzeugung',o.P],['ev','Eigenverbrauch',o.EV],['f','Einspeisung',o.F],['b','Bezug',o.B]].filter(x=>x[2]!=null).map(([k,l,v])=>'<span class="dv"><i class="yd" style="--mc:'+SOLC[k]+'"></i>'+l+'<b>'+fmtVal(v)+'</b></span>').join('')+
+   (o.q!=null?'<span class="dv">Quote<b>'+pctT(o.q)+'</b></span><span class="dv">Autarkie<b>'+pctT(o.aut)+'</b></span>':''):'<span class="mu">Für diesen Monat gibt es keine Werte.</span>'}
+ const k=solarSum(X,ys,ye)||{};
+ h+='<section class="card"><div class="atop"><h2 style="margin:0">Energie je Monat</h2><span class="mu sm">kWh</span></div>'+
+  '<div class="chips ychips">'+years.map(yy=>'<button class="chip sm" data-act="solYear" data-y="'+yy+'" aria-pressed="'+(yy===y)+'" style="--mc:'+yearColor(yy,light)+'">'+yy+'</button>').join('')+'</div>'+
+  stackSvg(cols,SO.sel,'solPick')+
+  '<div class="legend">'+cols.map(c=>'<span><i class="lg" style="--mc:'+c.col+'"></i>'+c.lab+'</span>').join('')+(anySim?'<span><i class="lg h"></i>simuliert</span>':'')+(anyPart?'<span><i class="lg p"></i>unvollständig</span>':'')+'</div>'+
+  '<div class="adet">'+det+'</div>'+
+  '<div class="solkpi">'+
+   (k.P!=null?'<div><span class="mu sm">Erzeugung</span><b>'+kwhT(k.P)+'</b></div>':'')+
+   (k.EV!=null?'<div><span class="mu sm">Eigenverbrauch</span><b>'+kwhT(k.EV)+'</b><small>'+pctT(k.q)+' der Erzeugung</small></div>':'')+
+   (k.F!=null?'<div><span class="mu sm">Einspeisung</span><b>'+kwhT(k.F)+'</b><small>ohne Vergütung</small></div>':'')+
+   (k.aut!=null?'<div><span class="mu sm">Autarkie</span><b>'+pctT(k.aut)+'</b><small>vom Hausverbrauch</small></div>':'')+
+   (k.H!=null?'<div><span class="mu sm">Hausverbrauch</span><b>'+kwhT(k.H)+'</b><small>Bezug '+kwhT(k.B)+'</small></div>':'')+
+   (k.EV!=null?'<div><span class="mu sm">Ersparnis</span><b>'+(k.sav!=null?eur0(k.sav):'–')+'</b><small>'+(c.price?'zum Strompreis':'Strompreis fehlt')+'</small></div>':'')+
+  '</div>'+(k.part?'<p class="mu sm" style="margin:0 2px 4px">'+y+' ist nur teilweise erfasst ('+fmtDay(Math.max(ys,X.first))+' bis '+fmtDay(Math.min(ye-DAY,X.last))+').</p>':'')+
+  '<details class="fold"><summary>So wird gerechnet</summary>'+
+   (full?'<p>Unten im Balken steht der <b>Bezug</b> aus dem Netz, darüber der <b>Eigenverbrauch</b> und oben die <b>Einspeisung</b>. Bezug plus Eigenverbrauch ist dein Hausverbrauch, Eigenverbrauch plus Einspeisung ist die Erzeugung.</p>':'')+
+   '<p><b>Eigenverbrauch</b> = Erzeugung minus Einspeisung. <b>Quote</b> = Eigenverbrauch geteilt durch Erzeugung. <b>Autarkie</b> = Eigenverbrauch geteilt durch Hausverbrauch.</p>'+
+   '<p>Die Zähler müssen nicht am selben Tag abgelesen sein. Jeder Zähler wird zuerst auf die Tage verteilt, dann rechnet die App Tag für Tag. Fehlende Monate werden wie beim Verbrauch simuliert.</p>'+
+   '<p><b>Ersparnis</b> = Eigenverbrauch mal Strom-Arbeitspreis brutto aus deinen Rechnungen. Die Einspeisung zählt mit 0 €, weil es keine Vergütung gibt.</p>'+
+   (c.pvm.some(m=>!(isFinite(m.op)&&m.op!=null))?'<p><b>Tipp</b>: Trage beim PV-Zähler „In Betrieb seit“ ein. Dann zählt die Erzeugung ab diesem Tag von 0 und die Auswertung beginnt früher.</p>':'')+
+  '</details></section>';
+ // Jahresvergleich
+ if(X.P){
+  const yv=years.slice(-6),ser=yv.map(yy=>({label:String(yy),col:yearColor(yy,light),pts:yearBuckets(X.P,yy,'m',false)}));
+  const has=kk=>ser.some(s2=>s2.pts.some(p=>p&&p[kk]));
+  const rows=years.slice().reverse().map(yy=>{const o=solarSum(X,new Date(yy,0,1).getTime(),new Date(yy+1,0,1).getTime());if(!o)return '';
+   return '<tr><td><span class="yd" style="--mc:'+yearColor(yy,light)+'"></span>'+yy+(o.part?' <span class="mu sm">teilw.</span>':'')+'</td><td>'+fmtVal(o.P)+'</td><td>'+pctT(o.q)+'</td><td>'+pctT(o.aut)+'</td><td>'+(o.sav!=null?eur0(o.sav):'–')+'</td></tr>'}).join('');
+  h+='<section class="card"><h2>Erzeugung im Jahresvergleich</h2><div class="cunit mu sm">kWh</div>'+chartSvg(ser,MON.slice(),'bar','sum',null,'')+
+   '<div class="legend">'+ser.map(s2=>'<span><i class="lg" style="--mc:'+s2.col+'"></i>'+s2.label+'</span>').join('')+(has('interp')?'<span><i class="lg h"></i>simuliert</span>':'')+(has('part')?'<span><i class="lg p"></i>unvollständig</span>':'')+'</div>'+
+   '<div class="tscroll"><table class="kpi"><tr><th>Jahr</th><th>kWh</th><th>Quote</th><th>Autarkie</th><th>Ersparnis</th></tr>'+rows+'</table></div>'+
+   '<details class="fold"><summary>Was die Spalten zeigen</summary><p><b>kWh</b>: Erzeugung aller PV-Zähler. <b>Quote</b>: Anteil der Erzeugung, den du selbst genutzt hast. <b>Autarkie</b>: Anteil deines Hausverbrauchs aus eigener Erzeugung. Teiljahre zählen nur die erfassten Tage.</p></details></section>';
+ }
+ // Aufteilung der Anlagen
+ if(c.pvm.length>1&&k.pk){
+  const tot=k.pk.reduce((a,b)=>a+b,0)||1;
+  h+='<section class="card"><h2>Aufteilung '+y+'</h2>'+c.pvm.map((m,i)=>'<div class="prow" style="--mc:var(--c-'+m.col+')"><div class="trow"><span><i class="yd"></i>'+esc(m.name)+(m.src==='app'?' <span class="mu sm">App</span>':'')+'</span><span class="mono"><b>'+fmtVal(k.pk[i])+'</b> kWh · '+pctT(k.pk[i]/tot)+'</span></div><div class="sbar"><i style="width:'+(100*k.pk[i]/tot).toFixed(1)+'%"></i></div></div>').join('')+
+   '<details class="fold"><summary>Hinweis</summary><p>Vor „In Betrieb seit“ zählt eine Anlage mit 0. Ohne dieses Datum beginnt die gemeinsame Auswertung erst, wenn alle Anlagen Werte haben.</p></details></section>';
+ }
+ return h+need;
+}
+
 /* ---------- Haushalte ---------- */
 const homeOf=()=>S.homes.find(h=>h.id===S.home)||S.homes[0];
 const RO=()=>!!homeOf().arch;
@@ -1677,7 +1892,7 @@ function switchHome(id){
  cur.meters=S.meters;cur.readings=S.readings;cur.remind=S.remind;cur.bills=S.bills||null;
  S.meters=nx.meters||[];S.readings=nx.readings||[];S.remind=nx.remind||[];S.bills=nx.bills||null;
  delete nx.meters;delete nx.readings;delete nx.remind;delete nx.bills;S.home=id;K={year:null,sel:null,med:'strom'};
- R={mid:null,digits:[],dt:'',photoNote:'',scan:'',scanMsg:'',helpOpen:false};H={mid:null,open:null};
+ R={mid:null,digits:[],digits2:[],dt:'',photoNote:'',scan:'',scanMsg:'',helpOpen:false};H={mid:null,open:null};SO={year:null,sel:null};
  if(A){A.mid=null;A.years=null;A.pa=null;A.pb=null;A.sel=null}
  crReset();save();
 }
@@ -1744,7 +1959,7 @@ const backBar=t=>'<button class="back" data-act="setPage" data-p="main"><span ar
 function viewSet(){
  const th=S.set.theme,nrem=(S.remind||[]).filter(r=>!r.off).length;
  if(SETP==='meters'){
-  const ml=S.meters.map(m=>'<button class="item" data-act="editMeter" data-id="'+m.id+'" style="--mc:var(--c-'+m.col+')"><span style="display:flex;align-items:center;gap:12px"><span class="mi">'+ico(MEDIA[m.medium].icon)+'</span><span><b>'+esc(m.name)+'</b><br><span class="mu sm">'+(m.number?'Nr. '+esc(m.number)+' · ':'')+m.pre+' Stellen vor, '+m.dec+' nach dem Komma</span></span></span><span class="mu">›</span></button>').join('');
+  const ml=S.meters.map(m=>'<button class="item" data-act="editMeter" data-id="'+m.id+'" style="--mc:var(--c-'+m.col+')"><span style="display:flex;align-items:center;gap:12px"><span class="mi">'+ico(MEDIA[m.medium].icon)+'</span><span><b>'+esc(m.name)+'</b><br><span class="mu sm">'+(m.feed?'Bezug und Einspeisung · ':'')+(m.medium==='pv'?(m.src==='app'?'Werte aus der Hersteller-App · ':'Erzeugungszähler · '):'')+(m.number?'Nr. '+esc(m.number)+' · ':'')+m.pre+' Stellen vor, '+m.dec+' nach dem Komma</span></span></span><span class="mu">›</span></button>').join('');
   return backBar('Zähler')+'<section class="card" style="padding:6px 14px">'+(ml||'<p class="mu" style="padding:10px 0">Noch keine Zähler.</p>')+'<div style="padding:8px 0 4px"><button class="btn sec wide" data-act="addMeter">'+ico('plus')+' Zähler hinzufügen</button></div></section>';
  }
  if(SETP==='remind'){
@@ -1760,7 +1975,7 @@ function viewSet(){
   '<div class="stack two"><button class="btn" data-act="shareData">Sicherung teilen</button><button class="btn sec" data-act="importData">Sicherung laden</button></div>'+
   '<button class="btn ghost sm wide" data-act="exportData" style="margin-top:4px">Als Datei speichern</button>'+
   '<details class="fold"><summary>Geräte ohne Dropbox abgleichen</summary><p>Tippe auf „Sicherung teilen“ und wähle „In Dateien sichern“, zum Beispiel in iCloud Drive. Auf dem anderen Gerät tippst du auf „Sicherung laden“ und dann auf „Zusammenführen“. So kommen die Daten beider Geräte zusammen, ohne dass etwas verloren geht.</p><p><b>Fritzbox als Ablage</b>: In der Dateien-App auf die drei Punkte tippen, „Mit Server verbinden“ wählen und smb://fritz.box eingeben. Anmelden mit einem Fritzbox-Benutzer, der Zugriff auf den Speicher hat. Danach erscheint die Fritzbox beim Sichern als Ort.</p></details></section>'+
-  '<section class="card"><h2>Ablesungen als Tabelle (CSV)</h2><p class="mu sm">Der Import fügt neue Ablesungen in den Haushalt „'+esc(homeOf().name)+'“ ein und lässt vorhandene unverändert. Der Export enthält auch die Stände bei Zählerwechseln. Die Spalten heißen Zähler, Datum und Stand, auf Wunsch zusätzlich Zählernummer, zum Beispiel „Gas;19.11.2026 18:00;1850,123;10146039“.</p><div class="stack two"><button class="btn sec" data-act="importCsv">CSV importieren</button><button class="btn sec" data-act="exportCsv">CSV exportieren</button></div></section>'+
+  '<section class="card"><h2>Ablesungen als Tabelle (CSV)</h2><p class="mu sm">Der Import fügt neue Ablesungen in den Haushalt „'+esc(homeOf().name)+'“ ein und lässt vorhandene unverändert. Der Export enthält auch die Stände bei Zählerwechseln. Die Spalten heißen Zähler, Datum und Stand, auf Wunsch zusätzlich Zählernummer, zum Beispiel „Gas;19.11.2026 18:00;1850,123;10146039“. Beim Zweirichtungszähler steht der Einspeisestand in der Spalte Einspeisung.</p><div class="stack two"><button class="btn sec" data-act="importCsv">CSV importieren</button><button class="btn sec" data-act="exportCsv">CSV exportieren</button></div></section>'+
   '<section class="card"><h2>Rechnungsdaten</h2><p class="mu sm">'+(S.bills?'Geladen: '+(S.bills.invoices||[]).filter(x=>!x.missing).length+' Jahresrechnungen'+(S.bills.provider?' der '+esc(S.bills.provider):'')+', am '+fmtDay(S.bills.loaded)+'. Eine neue Datei ersetzt die Preise und ergänzt fehlende Stände.':'Mit den Preisen aus deinen Jahresrechnungen berechnet die App Kosten, Preisentwicklung und die Prognose für die Abschläge.')+'</p>'+
   '<div class="stack"><button class="btn wide" data-act="addBill">'+ico('plus')+' Rechnung hinzufügen (PDF)</button></div><div class="stack two" style="margin-top:8px"><button class="btn sec" data-act="addBillMan">Von Hand eintragen</button><button class="btn sec" data-act="importBills">Rechnungsdatei laden</button></div>'+(S.bills?'<button class="btn ghost sm" data-act="dropBills" style="margin-top:6px;color:var(--bad)">Rechnungsdaten entfernen</button>':'')+'</section>'+
   '<section class="card"><h2>Löschen</h2><p class="mu sm"><b>Nur Ablesungen</b> im Haushalt „'+esc(homeOf().name)+'“: Zähler, Nummern, Farben und Erinnerungen bleiben. Danach kannst du eine CSV-Datei neu einlesen. Einzelne Jahre, Monate oder Zähler löschst du im Verlauf.</p><button class="btn danger wide" data-act="wipeReadings">Nur Ablesungen löschen</button>'+
@@ -1799,15 +2014,18 @@ async function editMeter(id){
   '<label class="fld">Name<input id="em-n" value="'+esc(m.name)+'" autocomplete="off"></label>'+
   '<label class="fld">Zählernummer<input id="em-nr" value="'+esc(m.number||'')+'" autocomplete="off"></label>'+
   (m.medium==='sonst'?'<label class="fld">Einheit<input id="em-u" value="'+esc(m.unit)+'" autocomplete="off"></label>':'')+
+  (m.medium==='pv'?'<label class="fld">Werte kommen aus<select id="em-src"><option value="meter"'+(m.src!=='app'?' selected':'')+'>dem Erzeugungszähler</option><option value="app"'+(m.src==='app'?' selected':'')+'>der Hersteller-App (Gesamtertrag)</option></select></label>'+
+   '<label class="fld">In Betrieb seit (Erzeugung zählt ab 0)<input type="date" id="em-op" value="'+(isFinite(m.op)&&m.op!=null?isoDay(m.op):'')+'"></label>':'')+
   '<div class="fld" style="margin-bottom:0">Farbe</div><div class="swatches" id="em-sw">'+swHtml()+'</div>'+
   '<div class="fld" style="margin-bottom:0">Anzeige des Zählers</div>'+
   stp('pre','Ziffern vor dem Komma (schwarz)','em-pre')+stp('dec','Ziffern nach dem Komma (rot)','em-dec')+
   '<label id="em-re" class="fld chk" hidden><input type="checkbox" id="em-reint"><span>Komma verschieben: vorhandene Ziffern neu deuten (nur bei gleicher Gesamtzahl der Stellen)</span></label>'+
   '<p id="em-ex" class="mu sm"></p><p class="mu sm">Gespeicherte Werte bleiben genau erhalten. Es ändert sich nur, wie viele Nachkommastellen angezeigt und eingegeben werden.</p>'+
+  (m.medium==='strom'?'<div class="fld" style="margin-bottom:0">Einspeisung (Zweirichtungszähler)</div><p class="mu sm" style="margin:4px 0">'+(m.feed?'Zählwerk 2.8.0 seit '+fmtDay(m.feed.from)+(m.feed.v0!=null?', Anfangsstand '+nf(m.feed.v0,m.feed.v0%1?m.dec:0):''):'Nicht eingerichtet. Für PV oder Balkonkraftwerk mit Zweirichtungszähler.')+'</p><button class="btn sec sm" data-val="feed">'+(m.feed?'Einspeisung bearbeiten':'Einspeisung einrichten')+'</button>':'')+
   (m.medium==='gas'?'<div class="fld" style="margin-bottom:0">Umrechnung in kWh</div><p class="mu sm" style="margin:4px 0">'+(m.conv&&m.conv.length?m.conv.length+(m.conv.length===1?' Zeitraum':' Zeiträume')+', zuletzt Brennwert '+String(m.conv[m.conv.length-1].hs).replace('.',',')+' und Zustandszahl '+String(m.conv[m.conv.length-1].z).replace('.',','):'Noch nicht festgelegt')+'</p><button class="btn sec sm" data-val="conv">Brennwert und Zustandszahl</button>':'')+
   '<button class="btn ghost sm wide" data-val="clr" style="color:var(--bad);margin-top:4px">'+ico('trash','s')+' Alle Ablesungen dieses Zählers löschen</button>'+
   '<div class="row"><button class="btn" data-val="save">Speichern</button><button class="btn sec" data-val="close">Schließen</button><button class="btn danger" data-val="del">Löschen</button></div>',
-  (dd,v)=>({act:v,name:$('#em-n',dd).value.trim(),nr:$('#em-nr',dd).value.trim(),unit:$('#em-u',dd)?$('#em-u',dd).value.trim():null,col:EM.col,pre:EM.pre,dec:EM.dec,reint:EM.reint}));
+  (dd,v)=>({act:v,name:$('#em-n',dd).value.trim(),nr:$('#em-nr',dd).value.trim(),unit:$('#em-u',dd)?$('#em-u',dd).value.trim():null,src:$('#em-src',dd)?$('#em-src',dd).value:null,op:$('#em-op',dd)?$('#em-op',dd).value:null,col:EM.col,pre:EM.pre,dec:EM.dec,reint:EM.reint}));
  emLive();
  const res=await p;
  EM=null;
@@ -1831,8 +2049,15 @@ async function editMeter(id){
   }
   m.pre=res.pre;m.dec=res.dec;R.digits=[];
  }
+ if(m.medium==='pv'&&res.src){
+  const fr=readingsOf(m.id)[0],op=res.op?dParse(res.op):null;
+  if(op!=null&&fr&&op>fr.t)return toast('„In Betrieb seit“ liegt nach der ersten Ablesung.');
+  if(res.src==='app')m.src='app';else delete m.src;
+  if(op!=null&&isFinite(op))m.op=op;else delete m.op;
+ }
  m.name=res.name;m.number=res.nr;m.col=res.col;if(res.unit!==null)m.unit=res.unit;save();render();
  if(res.act==='conv')return editConv(m);
+ if(res.act==='feed')return editFeed(m);
  toast('Gespeichert.');
 }
 // ---------- Erinnerungen ----------
@@ -1918,10 +2143,10 @@ async function importCsvText(text){
  if(!rows.length){await modal('<h3>Keine Ablesungen gefunden</h3><p>Die Datei braucht die Spalten Zähler, Datum und Stand, getrennt durch Semikolon.</p><div class="row"><button class="btn" data-val="ok">Schließen</button></div>');return}
  const res=mergeReadings(S.meters,S.readings,rows,uid),sw=normalizeSwaps(S.meters,S.readings);
  fillNumbers(S.meters,S.readings);
- if(res.added.length||sw.marked||sw.cleared||res.numbers)save();
+ if(res.added.length||sw.marked||sw.cleared||res.numbers||res.feed)save();
  R.digits=[];render();
  const li=a=>a.length?'<li>'+a.join('</li><li>')+'</li>':'';
- await modal('<h3>Import abgeschlossen</h3><ul class="tips"><li><b>'+res.added.length+'</b> neue Ablesung'+(res.added.length===1?'':'en')+' hinzugefügt</li>'+(res.dup.length?'<li>'+res.dup.length+' waren schon vorhanden und blieben unverändert</li>':'')+(res.numbers?'<li>Zählernummer bei '+res.numbers+' vorhandenen Ablesungen ergänzt</li>':'')+(sw.marked?'<li>'+sw.marked+' Zählerwechsel erkannt (Stand fällt oder Zählernummer ändert sich)</li>':'')+(sw.cleared?'<li>'+sw.cleared+' Zählerwechsel-Markierung'+(sw.cleared===1?'':'en')+' entfernt (Stand passt jetzt zur Vorgängerablesung)</li>':'')+(bad.length?'<li>'+bad.length+' Zeile'+(bad.length===1?'':'n')+' nicht lesbar</li>':'')+'</ul>'+(res.unknown.length?'<p class="msg bad">Unbekannte Zähler, bitte Namen prüfen:</p><ul class="tips">'+li(res.unknown.map(esc))+'</ul>':'')+'<div class="row"><button class="btn" data-val="ok">Schließen</button></div>');
+ await modal('<h3>Import abgeschlossen</h3><ul class="tips"><li><b>'+res.added.length+'</b> neue Ablesung'+(res.added.length===1?'':'en')+' hinzugefügt</li>'+(res.dup.length?'<li>'+res.dup.length+' waren schon vorhanden und blieben unverändert</li>':'')+(res.numbers?'<li>Zählernummer bei '+res.numbers+' vorhandenen Ablesungen ergänzt</li>':'')+(res.feed?'<li>Einspeisestand bei '+res.feed+' vorhandenen Ablesungen ergänzt</li>':'')+(sw.marked?'<li>'+sw.marked+' Zählerwechsel erkannt (Stand fällt oder Zählernummer ändert sich)</li>':'')+(sw.cleared?'<li>'+sw.cleared+' Zählerwechsel-Markierung'+(sw.cleared===1?'':'en')+' entfernt (Stand passt jetzt zur Vorgängerablesung)</li>':'')+(bad.length?'<li>'+bad.length+' Zeile'+(bad.length===1?'':'n')+' nicht lesbar</li>':'')+'</ul>'+(res.unknown.length?'<p class="msg bad">Unbekannte Zähler, bitte Namen prüfen:</p><ul class="tips">'+li(res.unknown.map(esc))+'</ul>':'')+'<div class="row"><button class="btn" data-val="ok">Schließen</button></div>');
  return res;
 }
 async function importCsv(f){if(!f)return;try{await importCsvText(await f.text())}catch(e){toast(e.message||'Die Datei ist nicht lesbar.')}}
@@ -1948,7 +2173,7 @@ async function wipe(){
 function pickColor(medium){
  const used=S.meters.map(m=>m.col),pref=MEDIA[medium].col;
  if(!used.includes(pref))return pref;
- return ['garten','himmel','cyan','gruen','waerme','sand','misc'].find(c=>!used.includes(c))||pref;
+ return ['garten','himmel','cyan','gruen','solar','waerme','sand','misc'].find(c=>!used.includes(c))||pref;
 }
 function uniqueName(base){
  if(!S.meters.some(m=>m.name===base))return base;
@@ -1957,17 +2182,18 @@ function uniqueName(base){
 function startSetup(first){
  const f=!!first&&!S.meters.length;
  const used=new Set(S.meters.map(m=>m.medium)),firstFree=Object.keys(MEDIA).find(k=>!used.has(k))||'gas';
- W={first:f,step:f?'welcome':'medium',medium:firstFree,name:'',unit:'',number:'',col:'',pre:5,dec:3,digits:[],dt:toLocalInput(Date.now()),nums:[]};
+ W={first:f,step:f?'welcome':'medium',medium:firstFree,name:'',unit:'',number:'',col:'',pre:5,dec:3,digits:[],digits2:[],src:'meter',op:'',feed:false,feedFrom:'',dt:toLocalInput(Date.now()),nums:[]};
  crReset();VIEW='setup';render();window.scrollTo(0,0);
 }
 const STEPS=['medium','id','photo','value'];
 function wDefaults(){
- W.name=uniqueName(MEDIA[W.medium].label);W.unit=MEDIA[W.medium].unit;W.col=pickColor(W.medium);W.pre=MEDIA[W.medium].pre;W.dec=MEDIA[W.medium].dec;W.digits=[];
+ W.name=uniqueName(W.medium==='pv'?'PV-Anlage':MEDIA[W.medium].label);W.unit=MEDIA[W.medium].unit;W.col=pickColor(W.medium);W.pre=MEDIA[W.medium].pre;W.dec=MEDIA[W.medium].dec;W.digits=[];W.digits2=[];W.src='meter';W.op='';W.feed=false;W.feedFrom='';
 }
 function wCollect(){
  if(W.step==='id'){
   W.name=($('#wname')||{}).value||W.name;W.number=(($('#wnum')||{}).value||'').trim();
   if(W.medium==='sonst'&&$('#wunit'))W.unit=$('#wunit').value.trim();
+  if($('#wop'))W.op=$('#wop').value;if($('#wfeed'))W.feed=$('#wfeed').checked;if($('#wff'))W.feedFrom=$('#wff').value;
  }
  if(W.step==='value'){W.dt=($('#wdt')||{}).value||W.dt}
 }
@@ -1992,24 +2218,31 @@ function viewSetup(){
    '<label class="fld">Name<input id="wname" value="'+esc(W.name)+'" autocomplete="off"></label>'+
    '<div class="fld" style="margin-bottom:0">Farbe</div><div class="swatches">'+COLS.map(c=>'<button class="sw" data-act="wColor" data-c="'+c+'" aria-label="Farbe '+COL_NAMES[c]+'" aria-pressed="'+(c===W.col)+'" style="--mc:var(--c-'+c+')"></button>').join('')+'</div>'+
    (W.medium==='sonst'?'<label class="fld">Einheit<input id="wunit" value="'+esc(W.unit)+'" autocomplete="off" placeholder="z. B. m³ oder kWh"></label>':'')+
-   '<label class="fld">Zählernummer<input id="wnum" value="'+esc(W.number)+'" autocomplete="off" autocapitalize="characters"></label>'+
-   '<p class="mu sm">Die Nummer steht auf dem Zähler und auf deiner Rechnung. Du tippst sie einmal ab. Sie hilft später, einen Zählerwechsel zu erkennen.</p>'+
+   (W.medium==='pv'?'<div class="fld" style="margin-bottom:4px">Woher kommen die Werte?</div>'+seg('wSrc',W.src,[['meter','Erzeugungszähler'],['app','Hersteller-App']]).replace('class="seg"','class="seg full"')+
+    '<p class="mu sm" style="margin-top:6px">'+(W.src==='app'?'Für ein Balkonkraftwerk ohne eigenen Zähler: Du trägst den Gesamtertrag aus der App ein. Ein Screenshot dient als Foto.':'Für eine Anlage mit eigenem Zähler für die erzeugte Energie.')+'</p>'+
+    '<label class="fld">In Betrieb seit (optional)<input type="date" id="wop" value="'+esc(W.op)+'"></label><p class="mu sm">Ab diesem Tag zählt die Erzeugung von 0. So rechnet die Auswertung von Anfang an. Leer lassen, wenn unbekannt.</p>':'')+
+   (W.medium==='strom'?'<label class="fld chk"><input type="checkbox" id="wfeed"'+(W.feed?' checked':'')+'><span>Zweirichtungszähler: zählt auch die Einspeisung (2.8.0)</span></label>'+
+    (W.feed?'<label class="fld">Eingebaut am (optional)<input type="date" id="wff" value="'+esc(W.feedFrom)+'"></label><p class="mu sm">Ab diesem Tag zählt die Einspeisung von 0. Leer lassen, wenn unbekannt.</p>':''):'')+
+   '<label class="fld">'+(W.medium==='pv'&&W.src==='app'?'Seriennummer (optional)':'Zählernummer')+'<input id="wnum" value="'+esc(W.number)+'" autocomplete="off" autocapitalize="characters"></label>'+
+   (W.medium==='pv'&&W.src==='app'?'':'<p class="mu sm">Die Nummer steht auf dem Zähler und auf deiner Rechnung. Du tippst sie einmal ab. Sie hilft später, einen Zählerwechsel zu erkennen.</p>')+
    '<details class="help"><summary>Optional: Nummer aus kopiertem Text übernehmen</summary><p class="sm mu">Hast du den Text vom Typenschild kopiert, zum Beispiel in der Fotos-App (Ziffern lange drücken, Kopieren), füge ihn hier ein. Die App zeigt dann die passenden Nummern zum Antippen. Das geht nicht auf jedem Gerät, Abtippen funktioniert immer.</p><label class="fld">Eingefügter Text<textarea id="wscan" rows="3" autocomplete="off"></textarea></label>'+cands+'</details></section>'+nav(true,'wNext');
  }
  if(W.step==='photo'){
-  return wBar()+'<section class="card"><h2>Foto vom Zähler</h2><p class="mu sm">Optional. Markiere einmal, wo der Zählerstand steht. Die App merkt sich den Ausschnitt für die nächsten Ablesungen.</p>'+(CR.src?photoEditor():photoPicker())+'</section>'+
+  const app=W.medium==='pv'&&W.src==='app';
+  return wBar()+'<section class="card"><h2>'+(app?'Screenshot aus der App':'Foto vom Zähler')+'</h2><p class="mu sm">Optional. Markiere einmal, wo '+(app?'der Gesamtertrag':'der Zählerstand')+' steht. Die App merkt sich den Ausschnitt für die nächsten Ablesungen.</p>'+(CR.src?photoEditor():photoPicker())+'</section>'+
    '<div class="row"><button class="btn sec" data-act="wBack">Zurück</button><button class="btn" style="flex:1" data-act="wNext">'+(CR.src?'Weiter':'Ohne Foto weiter')+'</button></div>';
  }
- return wBar()+'<section class="card"><h2>Erster Zählerstand</h2>'+
-  '<p class="mu sm">Lies die Anzeige so ab, wie sie auf dem Zähler steht: erst die schwarzen Ziffern, dann die roten. Ein Komma musst du nicht eintippen, es steht schon da.</p>'+
+ const wapp=W.medium==='pv'&&W.src==='app',wfd=W.medium==='strom'&&W.feed;
+ return wBar()+'<section class="card"><h2>'+(wapp?'Aktueller Gesamtertrag':'Erster Zählerstand')+'</h2>'+
+  '<p class="mu sm">'+(wapp?'Trage den Gesamtertrag aus der App in kWh ein: links die Stellen vor dem Komma, rechts die danach.':'Lies die Anzeige so ab, wie sie auf dem Zähler steht: erst die schwarzen Ziffern, dann die roten. Ein Komma musst du nicht eintippen, es steht schon da.')+(wfd?' Bezug (1.8.0) und Einspeisung (2.8.0) zeigt der Zähler meist im Wechsel an.':'')+'</p>'+
   stepper('pre','Ziffern vor dem Komma (schwarz)',W.pre)+stepper('dec','Ziffern nach dem Komma (rot)',W.dec)+
-  '<div class="entry">'+(CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+'<div class="rollers">'+rollerInputs(W.pre,W.dec,W.digits)+'</div><div id="wsum" class="msg">'+esc(wSum())+'</div></div>'+
-  '<p class="mu sm">Die kleinen Zeigerräder zählen nicht, nur die Rollen mit Ziffern.</p>'+
+  '<div class="entry">'+(CR.src?'<img id="cropimg" class="cropimg" alt="Ausschnitt mit dem Zählerstand">':'')+(wfd?'<div class="rlab"><b>Bezug</b><span>1.8.0</span></div>':'')+'<div class="rollers">'+rollerInputs(W.pre,W.dec,W.digits)+'</div>'+(wfd?'<div class="rlab"><b>Einspeisung</b><span>2.8.0</span></div><div class="rollers" data-r="2">'+rollerInputs(W.pre,W.dec,W.digits2,true)+'</div>':'')+'<div id="wsum" class="msg">'+esc(wSum())+'</div></div>'+
+  (wapp?'':'<p class="mu sm">Die kleinen Zeigerräder zählen nicht, nur die Rollen mit Ziffern.</p>')+
   '<label class="fld">Stand vom<input type="datetime-local" id="wdt" value="'+esc(W.dt)+'"></label></section>'+
   '<div class="row"><button class="btn sec" data-act="wBack">Zurück</button><button class="btn" style="flex:1" data-act="wFinish">Zähler anlegen</button></div>';
 }
 function stepper(f,label,v){return '<div class="stepper"><span>'+label+'</span><div><button class="btn sec sm" data-act="wStep" data-f="'+f+'" data-d="-1" aria-label="weniger">−</button><b>'+v+'</b><button class="btn sec sm" data-act="wStep" data-f="'+f+'" data-d="1" aria-label="mehr">+</button></div></div>'}
-function wSum(){const N=W.pre+W.dec,ds=Array.from({length:N},(_,i)=>W.digits[i]||'');if(ds.some(x=>x===''))return '';return 'Dein Stand: '+fmtValue(valueFromDigits(ds.join(''),W.pre,W.dec),W.pre,W.dec)+(W.unit?' '+W.unit:'')}
+function wSum(){const N=W.pre+W.dec,ds=Array.from({length:N},(_,i)=>W.digits[i]||''),d2=Array.from({length:N},(_,i)=>(W.digits2||[])[i]||''),fd=W.medium==='strom'&&W.feed;if(ds.some(x=>x===''))return '';const f=d=>fmtValue(valueFromDigits(d.join(''),W.pre,W.dec),W.pre,W.dec)+(W.unit?' '+W.unit:'');return (fd?'Bezug: ':'Dein Stand: ')+f(ds)+(fd&&!d2.some(x=>x==='')?', Einspeisung: '+f(d2):'')}
 async function wFinish(){
  wCollect();
  const N=W.pre+W.dec,ds=Array.from({length:N},(_,i)=>W.digits[i]||''),t=new Date(W.dt).getTime();
@@ -2017,16 +2250,29 @@ async function wFinish(){
  if(!isFinite(t))return toast('Bitte Datum und Uhrzeit prüfen.');
  const p={pre:W.pre,dec:W.dec,value:valueFromDigits(ds.join(''),W.pre,W.dec)};
  const m={id:uid(),medium:W.medium,name:W.name.trim()||MEDIA[W.medium].label,unit:W.unit,number:W.number,col:W.col,pre:p.pre,dec:p.dec,created:Date.now()};
+ let v2=null;
+ if(W.medium==='strom'&&W.feed){
+  const d2=Array.from({length:N},(_,i)=>(W.digits2||[])[i]||'');if(d2.some(x=>x===''))return toast('Bitte auch alle Stellen der Einspeisung eintragen.');
+  v2=valueFromDigits(d2.join(''),W.pre,W.dec);const ff=W.feedFrom?dParse(W.feedFrom):null;
+  if(ff!=null&&isFinite(ff)){if(ff>t)return toast('Das Einbaudatum liegt nach dem ersten Stand.');m.feed={from:ff,v0:0}}else m.feed={from:t};
+ }
+ if(W.medium==='pv'){
+  if(W.src==='app')m.src='app';const op=W.op?dParse(W.op):null;
+  if(op!=null&&isFinite(op)){if(op>t)return toast('„In Betrieb seit“ liegt nach dem ersten Stand.');m.op=op}
+ }
  if(CR.src)m.crop={...CR.rect};
- const id=uid(),rd={id,m:m.id,t,v:p.value};
+ const id=uid(),rd={id,m:m.id,t,v:p.value,...(v2!=null?{v2}:{})};
  if(CR.src){const blob=await crBlob();if(blob&&await DB.put(id,blob))rd.photo=id}
  const first=!S.meters.length;
  S.meters.push(m);S.readings.push(rd);
  if(!save())return;
  crReset();R.mid=m.id;rDigits();
- const more=await modal('<h3>„'+esc(m.name)+'“ ist eingerichtet</h3><p class="mu sm" style="margin-bottom:4px">Erster Zählerstand:</p><div style="margin:6px 0 4px">'+rollers(fmtValue(p.value,p.pre,p.dec))+' <span class="mu sm">'+esc(m.unit)+'</span></div><p class="mu sm">Vom '+fmtFull(t)+'. Die roten Ziffern sind die Nachkommastellen.</p><p>Möchtest du einen weiteren Zähler anlegen?</p><div class="row"><button class="btn" data-val="more">Weiteren Zähler anlegen</button><button class="btn sec" data-val="done">Fertig</button></div>');
+ const stm=m.medium==='pv'?S.meters.find(x=>x.medium==='strom'&&!x.feed):null;
+ const more=await modal('<h3>„'+esc(m.name)+'“ ist eingerichtet</h3><p class="mu sm" style="margin-bottom:4px">'+(v2!=null?'Bezug':m.src==='app'?'Gesamtertrag':'Erster Zählerstand')+':</p><div style="margin:6px 0 4px">'+rollers(fmtValue(p.value,p.pre,p.dec))+' <span class="mu sm">'+esc(m.unit)+'</span></div>'+(v2!=null?'<p class="mu sm" style="margin-bottom:4px">Einspeisung:</p><div style="margin:6px 0 4px">'+rollers(fmtValue(v2,p.pre,p.dec))+' <span class="mu sm">'+esc(m.unit)+'</span></div>':'')+'<p class="mu sm">Vom '+fmtFull(t)+'. Die roten Ziffern sind die Nachkommastellen.</p>'+
+  (stm?'<p class="mu sm">Für Eigenverbrauch und Autarkie braucht die App auch die Einspeisung. Hat dein Stromzähler „'+esc(stm.name)+'“ ein Zählwerk 2.8.0?</p><button class="btn sec wide" data-val="feed">Einspeisung am Stromzähler einrichten</button>':'')+
+  '<p style="margin-top:10px">Möchtest du einen weiteren Zähler anlegen?</p><div class="row"><button class="btn" data-val="more">Weiteren Zähler anlegen</button><button class="btn sec" data-val="done">Fertig</button></div>');
  W=null;
- if(more==='more')startSetup(false);else go('home');
+ if(more==='more')startSetup(false);else{go('home');if(more==='feed'&&stm)editFeed(stm)}
 }
 
 /* ---------- Ereignisse ---------- */
@@ -2087,6 +2333,12 @@ const ACT={
  exportCsv:()=>exportCsv(),
  wipe:()=>wipe(),
  wStart:()=>{W.step='medium';render()},
+ wSrc:el=>{wCollect();const s2=el.dataset.v;if(!W||s2===W.src)return;const nm=x=>uniqueName(x==='app'?'Balkonkraftwerk':'PV-Anlage');if(W.name===nm(W.src))W.name=nm(s2);W.src=s2;if(!W.digits.some(Boolean)){W.pre=s2==='app'?5:6;W.dec=s2==='app'?2:1}render()},
+ anaReg:el=>{A.reg=el.dataset.v;A.sel=null;A.years=null;A.pb=null;render()},
+ solYear:el=>{SO.year=+el.dataset.y;SO.sel=null;render()},
+ solPick:el=>{const i=+el.dataset.i;SO.sel=SO.sel===i?null:i;render()},
+ addPv:()=>{startSetup(false);W.medium='pv';wDefaults();render()},
+ setFeed:el=>editFeed(meterById(el.dataset.id)),
  wMedium:el=>{W.medium=el.dataset.k;wDefaults();render()},
  wNext:()=>{wCollect();const i=STEPS.indexOf(W.step);
   if(W.step==='id'&&!W.name.trim())return toast('Bitte einen Namen eingeben.');
@@ -2108,18 +2360,21 @@ document.addEventListener('click',e=>{
  const el=e.target.closest('[data-act]');
  if(el&&ACT[el.dataset.act]){e.preventDefault();if(RO_ACTS.has(el.dataset.act)&&roBlock())return;ACT[el.dataset.act](el,e)}
 });
-const RO_ACTS=new Set(['editPay','addBill','addBillMan','importBills','dropBills','addMeter','saveReading','importCsv','wipeReadings','delYear','delMonth','addRem','editRem','camera','library','pastePhoto','anaConv','editMeter','exportIcs']);
+const RO_ACTS=new Set(['addPv','setFeed','editPay','addBill','addBillMan','importBills','dropBills','addMeter','saveReading','importCsv','wipeReadings','delYear','delMonth','addRem','editRem','camera','library','pastePhoto','anaConv','editMeter','exportIcs']);
 document.addEventListener('toggle',e=>{const t=e.target;if(t.matches&&t.matches('details.yr')&&H.open){const y=+t.dataset.y;t.open?H.open.add(y):H.open.delete(y)}},true);
 document.addEventListener('change',e=>{
  if(e.target.id==='rm-kind'&&RM)rmLive();
  if(e.target.id==='em-reint'&&EM){EM.reint=e.target.checked;emLive()}
+ if(e.target.id==='wfeed'&&W){wCollect();W.feed=e.target.checked;render()}
  if(/^p[ab]-[ft]$/.test(e.target.id)&&A)anaMonth(e.target.id,e.target.value);
 });
 document.addEventListener('input',e=>{
  const t=e.target;
  if(t.matches('.rollers input')){
-  t.value=t.value.replace(/\D/g,'').slice(-1);const dg=(VIEW==='setup'&&W)?W.digits:R.digits;dg[+t.dataset.i]=t.value;if(VIEW==='setup'){const o=$('#wsum');if(o)o.textContent=wSum()}
-  if(t.value){const nx=t.parentElement.querySelector('input[data-i="'+(+t.dataset.i+1)+'"]');if(nx)nx.focus({preventScroll:true})}
+  const two=t.parentElement.dataset.r==='2';
+  if(VIEW==='setup'&&W&&!W.digits2)W.digits2=[];if(!R.digits2)R.digits2=[];
+  t.value=t.value.replace(/\D/g,'').slice(-1);const dg=(VIEW==='setup'&&W)?(two?W.digits2:W.digits):(two?R.digits2:R.digits);dg[+t.dataset.i]=t.value;if(VIEW==='setup'){const o=$('#wsum');if(o)o.textContent=wSum()}
+  if(t.value){const nx=t.parentElement.querySelector('input[data-i="'+(+t.dataset.i+1)+'"]')||(!two?$('.rollers[data-r="2"] input'):null);if(nx)nx.focus({preventScroll:true})}
  }else if(t.id==='rdt')R.dt=t.value;
  else if(t.id==='scan')R.scan=t.value;
  else if(t.id==='theme'){S.set.theme=t.value;save();applyTheme()}
@@ -2146,6 +2401,7 @@ document.addEventListener('focusout',()=>{setTimeout(()=>{const a=document.activ
 document.addEventListener('paste',e=>{
  if(e.target.matches&&e.target.matches('.rollers input')){
   const txt=(e.clipboardData||window.clipboardData).getData('text');e.preventDefault();
+  if(e.target.parentElement.dataset.r==='2'){const d=txt.replace(/\D/g,''),m=VIEW==='setup'?W:curMeter(),N=m.pre+m.dec;if(d.length===N){if(VIEW==='setup')W.digits2=d.split('');else R.digits2=d.split('');render()}else toast('Bitte die Stellen einzeln eintippen.');return}
   if(VIEW==='setup'){const d=txt.replace(/\D/g,''),N=W.pre+W.dec;if(d.length===N){W.digits=d.split('');render()}else toast('Bitte die Stellen einzeln eintippen.');return}
   R.scan=txt;applyScan();
  }
