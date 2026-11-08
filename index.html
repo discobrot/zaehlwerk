@@ -128,6 +128,9 @@ ul.tips{margin:6px 0 8px;padding-left:20px}ul.tips li{margin:3px 0}
 dialog .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}dialog .row .btn{width:100%;padding:0 8px}
 .srow{display:flex;align-items:center;gap:12px;width:100%;background:transparent;border:0;border-top:1px solid var(--line);padding:11px 4px;color:var(--tx);text-align:left;font:inherit;cursor:pointer;min-height:58px}
 .srow:first-child{border-top:0}
+.syhead{display:flex;align-items:center;gap:12px;margin:2px 0 8px}
+.kvl{border-top:1px solid var(--line);margin-top:4px}.kvr{display:flex;justify-content:space-between;gap:12px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px}.kvr>span:last-child{text-align:right}
+.codebox{font:600 15px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;user-select:all;-webkit-user-select:all}
 .si{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--glass);border:1px solid var(--line);color:var(--pri);flex:none}
 .sx{display:flex;flex-direction:column;flex:1;min-width:0}.sx b{font-size:15px}.sx span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sch{font-size:22px}
 .back{background:transparent;border:0;color:var(--pri);font:600 15px system-ui,sans-serif;padding:4px 0;min-height:36px;cursor:pointer;margin-bottom:2px}
@@ -245,7 +248,7 @@ tr.click{cursor:pointer}tr.click:active td{background:var(--glass)}
 
 <script>
 'use strict';
-const APP={name:'Zählwerk',version:'0.7.1'};
+const APP={name:'Zählwerk',version:'0.8.0'};
 const DAY=864e5;
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -865,6 +868,7 @@ const IC={
  filter:'<path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/>',
  archive:'<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
  trash:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/>',
+ cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
  img:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/>'
 };
 const ico=(n,c)=>'<svg class="ic '+(c||'')+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+IC[n]+'</svg>';
@@ -1758,7 +1762,8 @@ function viewSet(){
   '<div class="stack"><button class="btn wide" data-act="addBill">'+ico('plus')+' Rechnung hinzufügen (PDF)</button></div><div class="stack two" style="margin-top:8px"><button class="btn sec" data-act="addBillMan">Von Hand eintragen</button><button class="btn sec" data-act="importBills">Rechnungsdatei laden</button></div>'+(S.bills?'<button class="btn ghost sm" data-act="dropBills" style="margin-top:6px;color:var(--bad)">Rechnungsdaten entfernen</button>':'')+'</section>'+
   '<section class="card"><h2>Löschen</h2><p class="mu sm"><b>Nur Ablesungen</b> im Haushalt „'+esc(homeOf().name)+'“: Zähler, Nummern, Farben und Erinnerungen bleiben. Danach kannst du eine CSV-Datei neu einlesen. Einzelne Jahre, Monate oder Zähler löschst du im Verlauf.</p><button class="btn danger wide" data-act="wipeReadings">Nur Ablesungen löschen</button>'+
   '<p class="mu sm" style="margin-top:12px"><b>Alles</b>: entfernt alle Haushalte, Zähler, Ablesungen und Fotos von diesem Gerät.</p><button class="btn danger wide" data-act="wipe">Alle Daten löschen</button></section>';
- if(SETP==='info')return backBar('Info')+'<section class="card"><p><b>'+APP.name+'</b> '+APP.version+'</p><p class="mu sm">Zählerstände erfassen, prüfen und auswerten. Die App arbeitet ohne Server, alle Daten bleiben auf deinem Gerät.</p></section>';
+ if(SETP==='sync')return viewSync();
+ if(SETP==='info')return backBar('Info')+'<section class="card"><p><b>'+APP.name+'</b> '+APP.version+'</p><p class="mu sm">Zählerstände erfassen, prüfen und auswerten. Die App arbeitet ohne eigenen Server. Alle Daten bleiben auf deinem Gerät, mit Synchronisation zusätzlich in deiner Dropbox.</p></section>';
  if(SETP==='homes'){
   const rows=S.homes.map(h=>{const st=homeStats(h);return '<button class="item" data-act="editHome" data-id="'+h.id+'"><span style="display:flex;align-items:center;gap:12px"><span class="si">'+ico(h.arch?'archive':'home')+'</span><span><b>'+esc(h.name)+'</b><br><span class="mu sm">'+(h.id===S.home?'Aktiv, ':'')+st.m+' Zähler, '+st.r+(st.r===1?' Ablesung':' Ablesungen')+(h.arch?', archiviert':'')+'</span></span></span><span class="mu">›</span></button>'}).join('');
   return backBar('Haushalte')+'<section class="card" style="padding:6px 14px">'+rows+'<div style="padding:8px 0 4px"><button class="btn sec wide" data-act="addHome">'+ico('plus')+' Neuen Haushalt anlegen</button></div></section>'+
@@ -1768,6 +1773,7 @@ function viewSet(){
   srow('homes','home','Haushalte',esc(homeOf().name)+(S.homes.length>1?' (von '+S.homes.length+')':'')+(RO()?', archiviert':''))+
   srow('meters','gauge','Zähler',S.meters.length?S.meters.map(m=>esc(m.name)).join(', '):'Noch keine')+
   srow('remind','bell','Erinnerungen',nrem?nrem+(nrem===1?' Zeitplan aktiv':' Zeitpläne aktiv'):'Keine eingerichtet')+
+  srow('sync','cloud','Synchronisation',syncSub())+
   srow('look','sun','Darstellung',th==='light'?'Hell':th==='auto'?'Wie das Telefon':'Dunkel')+
   srow('data','db','Daten und Sicherung',S.set.lastBackup?'Letzte Sicherung '+fmtDay(S.set.lastBackup):'Noch keine Sicherung')+
   srow('info','info','Info',APP.name+' '+APP.version)+'</section>';
@@ -2137,10 +2143,191 @@ async function checkUpdate(){
 }
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 
+/* ---------- Synchronisation (anbieterneutral, Adapter: Dropbox) ---------- */
+// Tokens liegen getrennt von den Daten unter eigenem Schlüssel. PKCE-Zwischenwerte ebenso.
+const SYNC_KEY='zaehlwerk.sync',PKCE_KEY='zaehlwerk.pkce';
+const SYNC_FILE='/zaehlwerk-daten.json';
+const SY={st:null,busy:false,check:null};
+try{SY.st=JSON.parse(localStorage.getItem(SYNC_KEY))||null}catch(e){SY.st=null}
+function saveSync(){try{if(SY.st)localStorage.setItem(SYNC_KEY,JSON.stringify(SY.st));else localStorage.removeItem(SYNC_KEY)}catch(e){}}
+const redirectUri=()=>location.origin+location.pathname.replace(/index\.html$/,'');
+const b64url=buf=>{let s='';new Uint8Array(buf).forEach(c=>s+=String.fromCharCode(c));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const rndStr=n=>{const a=new Uint8Array(n);crypto.getRandomValues(a);return b64url(a)};
+const pkceChallenge=async v=>b64url(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)));
+class SyncErr extends Error{constructor(msg,kind){super(msg);this.kind=kind||'err'}}
+async function netFetch(url,opt){
+ if(navigator.onLine===false)throw new SyncErr('Keine Internetverbindung.','offline');
+ try{return await fetch(url,opt)}catch(e){throw new SyncErr('Dropbox ist gerade nicht erreichbar.','offline')}
+}
+const dbxMsg=(j,st)=>{
+ const t=(j&&(j.error_description||j.error_summary||(typeof j.error==='string'?j.error:'')))||'';
+ if(/invalid_grant|expired_access_token|invalid_access_token/.test(t))return 'Die Anmeldung ist abgelaufen. Bitte neu verbinden.';
+ if(/code doesn't exist|invalid.*code/i.test(t))return 'Der Code ist ungültig oder abgelaufen. Bitte die Anmeldung neu starten.';
+ return 'Dropbox meldet: '+(t||'Fehler '+st);
+};
+const Dropbox={
+ id:'dropbox',label:'Dropbox',key:'g1yfyf5gzjax8xk',
+ async authUrl(withRedirect){
+  const v=rndStr(48),state=rndStr(12),redir=withRedirect?redirectUri():'';
+  localStorage.setItem(PKCE_KEY,JSON.stringify({v,state,redir,t:Date.now()}));
+  const p=new URLSearchParams({client_id:this.key,response_type:'code',code_challenge:await pkceChallenge(v),code_challenge_method:'S256',token_access_type:'offline'});
+  if(withRedirect){p.set('redirect_uri',redir);p.set('state',state)}
+  return 'https://www.dropbox.com/oauth2/authorize?'+p.toString();
+ },
+ async tokenReq(params){
+  const r=await netFetch('https://api.dropboxapi.com/oauth2/token',{method:'POST',body:new URLSearchParams(params)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new SyncErr(dbxMsg(j,r.status),r.status===400&&/invalid_grant/.test(JSON.stringify(j))?'auth':'err');
+  return j;
+ },
+ async exchange(code,pk){
+  const p={code:code.trim(),grant_type:'authorization_code',code_verifier:pk.v,client_id:this.key};if(pk.redir)p.redirect_uri=pk.redir;
+  return this.tokenReq(p);
+ },
+ async token(force){
+  const s=SY.st;if(!s||!s.refresh)throw new SyncErr('Nicht verbunden.','auth');
+  if(!force&&s.access&&s.exp>Date.now()+60000)return s.access;
+  try{const j=await this.tokenReq({grant_type:'refresh_token',refresh_token:s.refresh,client_id:this.key});s.access=j.access_token;s.exp=Date.now()+(j.expires_in||14400)*1000;delete s.authErr;saveSync();return s.access}
+  catch(e){if(e.kind==='auth'){s.authErr=1;saveSync()}throw e}
+ },
+ async call(url,mk){
+  let r=await netFetch(url,mk(await this.token()));
+  if(r.status===401)r=await netFetch(url,mk(await this.token(true)));
+  if(r.status===401){SY.st.authErr=1;saveSync();throw new SyncErr('Die Anmeldung ist abgelaufen. Bitte neu verbinden.','auth')}
+  return r;
+ },
+ async rpc(path,args){
+  const r=await this.call('https://api.dropboxapi.com/2/'+path,tk=>({method:'POST',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/json'},body:JSON.stringify(args===undefined?null:args)}));
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){const e=new SyncErr(dbxMsg(j,r.status),r.status===409?'conflict':'err');e.data=j;throw e}
+  return j;
+ },
+ async account(){const j=await this.rpc('users/get_current_account');return{name:(j.name&&j.name.display_name)||'',email:j.email||'',id:j.account_id||''}},
+ async meta(){try{const j=await this.rpc('files/get_metadata',{path:SYNC_FILE});return{rev:j.rev,size:j.size,mod:Date.parse(j.server_modified)||0}}catch(e){if(e.data&&/not_found/.test(JSON.stringify(e.data)))return null;throw e}},
+ // get(): {data, rev} oder null, wenn noch keine Datei existiert
+ async get(){
+  const r=await this.call('https://content.dropboxapi.com/2/files/download',tk=>({method:'POST',headers:{Authorization:'Bearer '+tk,'Dropbox-API-Arg':JSON.stringify({path:SYNC_FILE})}}));
+  if(r.status===409){const j=await r.json().catch(()=>({}));if(/not_found/.test(JSON.stringify(j)))return null;throw new SyncErr(dbxMsg(j,409))}
+  if(!r.ok)throw new SyncErr('Dropbox meldet: Fehler '+r.status);
+  let meta={};try{meta=JSON.parse(r.headers.get('Dropbox-API-Result')||'{}')}catch(e){}
+  const txt=await r.text();let data;try{data=JSON.parse(txt)}catch(e){throw new SyncErr('Die Datei in Dropbox ist beschädigt.')}
+  return{data,rev:meta.rev||''};
+ },
+ // put(): {rev} oder {conflict:true}, wenn die Datei inzwischen von einem anderen Gerät geändert wurde
+ async put(data,rev){
+  const arg={path:SYNC_FILE,mode:rev?{'.tag':'update',update:rev}:{'.tag':'add'},autorename:false,mute:true,strict_conflict:true};
+  const r=await this.call('https://content.dropboxapi.com/2/files/upload',tk=>({method:'POST',headers:{Authorization:'Bearer '+tk,'Content-Type':'application/octet-stream','Dropbox-API-Arg':JSON.stringify(arg)},body:new Blob([JSON.stringify(data)])}));
+  const j=await r.json().catch(()=>({}));
+  if(r.status===409&&/conflict/.test(JSON.stringify(j)))return{conflict:true};
+  if(!r.ok)throw new SyncErr(dbxMsg(j,r.status));
+  return{rev:j.rev};
+ },
+ async disconnect(){try{await this.rpc('auth/token/revoke')}catch(e){}}
+};
+const SYNC_PROV={dropbox:Dropbox};
+const prov=()=>SY.st&&SYNC_PROV[SY.st.prov];
+
+async function syncConnect(){
+ if(navigator.onLine===false)return toast('Für die Anmeldung braucht die App Internet.');
+ location.assign(await Dropbox.authUrl(true));
+}
+async function syncCodeStart(){
+ if(navigator.onLine===false)return toast('Für die Anmeldung braucht die App Internet.');
+ const u=await Dropbox.authUrl(false);
+ const w=window.open(u,'_blank');if(!w)location.assign(u);
+ SY.codeOpen=true;render();
+}
+async function syncFinish(code,pk){
+ SY.busy=true;render();
+ try{
+  const j=await Dropbox.exchange(code,pk);
+  localStorage.removeItem(PKCE_KEY);
+  SY.st={prov:'dropbox',access:j.access_token,exp:Date.now()+(j.expires_in||14400)*1000,refresh:j.refresh_token,since:Date.now()};saveSync();
+  try{SY.st.acct=await Dropbox.account();saveSync()}catch(e){}
+  SY.codeOpen=false;toast('Mit Dropbox verbunden.');
+  await syncCheck(true);
+ }catch(e){toast(e.message||'Anmeldung fehlgeschlagen.')}
+ SY.busy=false;render();
+}
+async function syncCodeRedeem(){
+ const el=$('#sy-code'),code=el?el.value.trim():'';
+ if(!code)return toast('Bitte den Code einfügen.');
+ let pk=null;try{pk=JSON.parse(localStorage.getItem(PKCE_KEY))}catch(e){}
+ if(!pk)return toast('Bitte zuerst die Anmeldung starten.');
+ await syncFinish(code,pk);
+}
+// Verbindung prüfen: Konto und Datei in Dropbox
+async function syncCheck(quiet){
+ const p=prov();if(!p)return;
+ SY.busy=true;render();
+ try{
+  const a=await p.account();SY.st.acct=a;
+  SY.st.remote=await p.meta();SY.st.checked=Date.now();delete SY.st.authErr;saveSync();
+  if(!quiet)toast('Verbindung in Ordnung.');
+ }catch(e){toast(e.message)}
+ SY.busy=false;render();
+}
+async function syncDisconnect(){
+ const ok=await modal('<h3>Dropbox trennen?</h3><p class="mu sm">Dieses Gerät gleicht danach nicht mehr ab. Die Daten auf dem Gerät und die Datei in Dropbox bleiben erhalten.</p><div class="row"><button class="btn danger" data-val="ok">Trennen</button><button class="btn sec" data-val="no">Abbrechen</button></div>');
+ if(ok!=='ok')return;
+ const p=prov();if(p)await p.disconnect();
+ SY.st=null;saveSync();toast('Dropbox getrennt.');render();
+}
+// Rückkehr von der Anmeldung (Weiterleitung mit ?code=…&state=…)
+function syncReturn(){
+ const q=new URLSearchParams(location.search),code=q.get('code'),err=q.get('error');
+ if(!code&&!err)return false;
+ try{history.replaceState(null,'',location.pathname)}catch(e){}
+ VIEW='set';SETP='sync';
+ let pk=null;try{pk=JSON.parse(localStorage.getItem(PKCE_KEY))}catch(e){}
+ if(err){localStorage.removeItem(PKCE_KEY);setTimeout(()=>toast(err==='access_denied'?'Anmeldung abgebrochen.':'Dropbox meldet: '+(q.get('error_description')||err)),300);return true}
+ if(pk&&pk.state===q.get('state'))setTimeout(()=>syncFinish(code,pk),0);
+ else setTimeout(()=>syncHandoff(code),300); // in einem anderen Browserbereich angekommen (z. B. Safari statt Home-Bildschirm-App)
+ return true;
+}
+async function syncHandoff(code){
+ const r=await modal('<h3>Anmeldung fast fertig</h3><p class="mu sm">Die Anmeldung ist in Safari angekommen. Die Zählwerk-App auf dem Home-Bildschirm ist davon getrennt und braucht diesen Code.</p>'+
+  '<div class="codebox" id="sy-hc">'+esc(code)+'</div>'+
+  '<p class="mu sm">Code kopieren, die App vom Home-Bildschirm öffnen und unter Einstellungen, Synchronisation, „Klappt die Rückkehr in die App nicht?“ ins Feld „Code“ einfügen. Der Code gilt nur wenige Minuten.</p>'+
+  '<div class="row"><button class="btn" data-val="copy">Code kopieren</button><button class="btn sec" data-val="close">Schließen</button></div>');
+ if(r==='copy'){try{await navigator.clipboard.writeText(code);toast('Code kopiert.')}catch(e){toast('Bitte den Code von Hand markieren und kopieren.')}}
+}
+const syncSub=()=>{const s=SY.st;if(!s)return 'Aus';if(s.authErr)return 'Neu anmelden nötig';return 'Dropbox'+(s.acct&&s.acct.name?', '+esc(s.acct.name):'')};
+function viewSync(){
+ const s=SY.st,busy=SY.busy?' disabled':'';
+ const what='<section class="card"><details class="fold"><summary>Was wird abgeglichen?</summary><p>Alle Haushalte mit Zählern, Ablesungen, Erinnerungen und Rechnungsdaten. Gelöschtes bleibt auch auf den anderen Geräten gelöscht.</p><p><b>Pro Gerät</b> bleiben Darstellung, Auswertungsfilter, der gewählte Haushalt und die Mitteilungen.</p><p><b>Fotos</b> bleiben vorerst auf dem Gerät, mit dem sie aufgenommen wurden.</p><p>Die Sicherung als Datei funktioniert weiterhin unabhängig davon.</p></details></section>';
+ if(!s){
+  return backBar('Synchronisation')+'<section class="card"><div class="syhead"><span class="si">'+ico('cloud')+'</span><span><b>Dropbox</b><br><span class="mu sm">Nicht verbunden</span></span></div>'+
+   '<p class="mu sm">Mit Dropbox hast du dieselben Daten auf iPhone, iPad und PC. Die App bekommt in deiner Dropbox einen eigenen Ordner „Apps/Zählwerk“ und sieht nur diesen. Ohne Internet arbeitest du normal weiter.</p>'+
+   '<button class="btn wide" data-act="syConnect"'+busy+'>'+(SY.busy?'Anmeldung läuft …':'Mit Dropbox verbinden')+'</button>'+
+   '<details class="fold" style="margin-top:8px"'+(SY.codeOpen?' open':'')+'><summary>Klappt die Rückkehr in die App nicht?</summary><p>Dann meldest du dich ohne Rückkehr an und überträgst einen Code. Auch einen Code aus Safari fügst du hier ein.</p>'+
+   '<div class="stack"><button class="btn sec wide" data-act="syCodeStart"'+busy+'>Anmeldung mit Code öffnen</button></div>'+
+   '<label class="fld">Code<input id="sy-code" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Code aus Dropbox einfügen"></label>'+
+   '<button class="btn sec wide" data-act="syCodeRedeem"'+busy+'>Code einlösen</button></details></section>'+what;
+ }
+ const a=s.acct||{},rm=s.remote;
+ const kv=(k,v,c)=>'<div class="kvr"><span class="mu">'+k+'</span><span'+(c?' class="'+c+'"':'')+'>'+v+'</span></div>';
+ return backBar('Synchronisation')+
+  (s.authErr?'<div class="banner">'+ico('warn')+'<span>Dropbox hat die Anmeldung nicht mehr angenommen. Bitte trennen und neu verbinden.</span></div>':'')+
+  '<section class="card"><div class="syhead"><span class="si">'+ico('cloud')+'</span><span><b>Dropbox</b><br><span class="mu sm">'+(a.name?esc(a.name):'Verbunden')+(a.email?' · '+esc(a.email):'')+'</span></span></div>'+
+  '<div class="kvl">'+kv('Verbunden seit',fmtDay(s.since))+
+   kv('Datei in Dropbox',rm?'vom '+fmtFull(rm.mod)+', '+nf(rm.size/1024,0)+' KB':(s.checked?'noch keine':'unbekannt'))+
+   kv('Letzter Abgleich',s.last?fmtFull(s.last):'Testversion, folgt mit 0.8.1','mu')+
+   (s.checked?kv('Zuletzt geprüft',fmtFull(s.checked)):'')+'</div>'+
+  '<div class="stack two" style="margin-top:10px"><button class="btn sec" data-act="syCheck"'+busy+'>'+(SY.busy?'Prüfe …':'Verbindung prüfen')+'</button><button class="btn danger" data-act="syOff"'+busy+'>Trennen</button></div></section>'+what;
+}
+Object.assign(ACT,{
+ syConnect:()=>syncConnect(),
+ syCodeStart:()=>syncCodeStart(),
+ syCodeRedeem:()=>syncCodeRedeem(),
+ syCheck:()=>syncCheck(false),
+ syOff:()=>syncDisconnect()
+});
+
 /* ---------- Start ---------- */
 buildTabs();applyTheme();
 DB.open().then(()=>{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})});
-if(!S.meters.length)startSetup(true);else render();
+if(syncReturn())render();else if(!S.meters.length)startSetup(true);else render();
 setTimeout(checkUpdate,1500);setTimeout(showBackdrop,250);
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)){
  const hadSW=!!navigator.serviceWorker.controller;
